@@ -21,8 +21,7 @@ class _WatchAlert {
     required this.title,
     required this.body,
     required this.receivedAt,
-    this.confirmed = false,
-  });
+  }) : confirmed = false;
 }
 
 /// Vista Smartwatch Companion en tiempo real (/watch).

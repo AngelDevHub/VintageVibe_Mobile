@@ -6,7 +6,7 @@ import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/config/theme/app_typography.dart';
 import '../../../../shared/widgets/ios_pressable.dart';
 import '../../data/models/product.dart';
-import '../../publish/presentation/providers/publish_provider.dart';
+import '../../../publish/presentation/providers/publish_provider.dart';
 import '../providers/catalog_provider.dart';
 
 class CatalogScreen extends ConsumerStatefulWidget {
