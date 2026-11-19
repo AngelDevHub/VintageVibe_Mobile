@@ -1,5 +1,6 @@
 /// VintageVibe Mobile — Editorial iOS ThemeData
 /// Sin ripples agresivos de Material, sin sombras flotantes pesadas y con bordes de 0.5–1px.
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'app_colors.dart';
