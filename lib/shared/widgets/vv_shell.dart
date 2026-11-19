@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -22,67 +23,90 @@ class VVShell extends StatelessWidget {
     if (location.startsWith('/profile')) currentIndex = 3;
 
     final bottomInset = MediaQuery.of(context).padding.bottom;
-    final double bottomPadding = (bottomInset > 14 ? bottomInset - 20 : bottomInset).clamp(4.0, 18.0);
+    // Pegada hasta abajo, justo rozando por encima del indicador home de iPhone
+    final double bottomOffset = bottomInset > 20 ? 12.0 : 8.0;
 
     return Scaffold(
       backgroundColor: AppColors.light,
-      body: child,
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: AppColors.light,
-          border: Border(
-            top: BorderSide(color: AppColors.border, width: 0.5),
+      extendBody: true,
+      body: Stack(
+        children: [
+          // Contenido principal con espacio inferior sutil para no tapar el último ítem al hacer scroll
+          Padding(
+            padding: EdgeInsets.only(bottom: 72 + bottomOffset),
+            child: child,
           ),
-        ),
-        padding: EdgeInsets.only(top: 5, bottom: bottomPadding),
-        child: SizedBox(
-          height: 38,
-          child: Row(
-            children: [
-              _EditorialNavItem(
-                icon: CupertinoIcons.compass,
-                activeIcon: CupertinoIcons.compass_fill,
-                label: 'Explorar',
-                isSelected: currentIndex == 0,
-                onTap: () => context.goNamed(AppRoutes.home),
+
+          // Barra de navegación flotante estilo iOS Liquid Glass hasta abajo
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: bottomOffset,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(32),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+                child: Container(
+                  height: 60,
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xE0161618),
+                    borderRadius: BorderRadius.circular(32),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.16),
+                      width: 0.8,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      _LiquidGlassNavItem(
+                        icon: CupertinoIcons.compass,
+                        activeIcon: CupertinoIcons.compass_fill,
+                        label: 'Explorar',
+                        isSelected: currentIndex == 0,
+                        onTap: () => context.goNamed(AppRoutes.home),
+                      ),
+                      _LiquidGlassNavItem(
+                        icon: CupertinoIcons.plus_square,
+                        activeIcon: CupertinoIcons.plus_square_fill,
+                        label: 'Publicar',
+                        isSelected: currentIndex == 1,
+                        onTap: () => context.goNamed(AppRoutes.publish),
+                      ),
+                      _LiquidGlassNavItem(
+                        icon: CupertinoIcons.bag,
+                        activeIcon: CupertinoIcons.bag_fill,
+                        label: 'Carrito',
+                        isSelected: currentIndex == 2,
+                        onTap: () => context.goNamed(AppRoutes.cart),
+                      ),
+                      _LiquidGlassNavItem(
+                        icon: CupertinoIcons.person,
+                        activeIcon: CupertinoIcons.person_fill,
+                        label: 'Perfil',
+                        isSelected: currentIndex == 3,
+                        onTap: () => context.goNamed(AppRoutes.profile),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              _EditorialNavItem(
-                icon: CupertinoIcons.plus_square,
-                activeIcon: CupertinoIcons.plus_square_fill,
-                label: 'Publicar',
-                isSelected: currentIndex == 1,
-                onTap: () => context.goNamed(AppRoutes.publish),
-              ),
-              _EditorialNavItem(
-                icon: CupertinoIcons.bag,
-                activeIcon: CupertinoIcons.bag_fill,
-                label: 'Carrito',
-                isSelected: currentIndex == 2,
-                onTap: () => context.goNamed(AppRoutes.cart),
-              ),
-              _EditorialNavItem(
-                icon: CupertinoIcons.person,
-                activeIcon: CupertinoIcons.person_fill,
-                label: 'Perfil',
-                isSelected: currentIndex == 3,
-                onTap: () => context.goNamed(AppRoutes.profile),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
 }
 
-class _EditorialNavItem extends StatelessWidget {
+class _LiquidGlassNavItem extends StatelessWidget {
   final IconData icon;
   final IconData activeIcon;
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
 
-  const _EditorialNavItem({
+  const _LiquidGlassNavItem({
     required this.icon,
     required this.activeIcon,
     required this.label,
@@ -92,32 +116,45 @@ class _EditorialNavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isSelected ? AppColors.dark : AppColors.gray;
+    final Color fgColor =
+        isSelected ? Colors.white : Colors.white.withValues(alpha: 0.72);
 
     return Expanded(
       child: IosPressable(
         onTap: onTap,
-        pressedScale: 0.94,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              isSelected ? activeIcon : icon,
-              size: 20,
-              color: color,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: AppTypography.labelSmall.copyWith(
-                color: color,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                fontSize: 10,
+        pressedScale: 0.95,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          height: double.infinity,
+          decoration: BoxDecoration(
+            color: isSelected
+                ? Colors.white.withValues(alpha: 0.18)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(28),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                isSelected ? activeIcon : icon,
+                size: 21,
+                color: fgColor,
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: AppTypography.labelSmall.copyWith(
+                  color: fgColor,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                  fontSize: 10.5,
+                  height: 1.1,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
         ),
       ),
     );
