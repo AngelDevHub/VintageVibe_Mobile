@@ -1,0 +1,33 @@
+name: VintageVibe Mobile CI
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main", "develop" ]
+
+jobs:
+  mobile-quality:
+    name: Flutter Analyze & Automated Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Flutter SDK (Stable)
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Crear archivo .env desde plantilla
+        run: cp .env.example .env
+
+      - name: Instalar dependencias de Flutter
+        run: flutter pub get
+
+      - name: Análisis estático (Flutter Analyze)
+        run: flutter analyze --no-fatal-infos
+
+      - name: Ejecutar pruebas unitarias, integración, SQLite y widgets
+        run: flutter test --reporter expanded

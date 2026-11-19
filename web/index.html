@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="VintageVibe — Marketplace y tienda de moda circular vintage.">
+
+  <!-- iOS meta tags & icons for PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="VintageVibe">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-180x180.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="apple-touch-icon-152x152.png">
+  <link rel="apple-touch-icon" sizes="167x167" href="apple-touch-icon-167x167.png">
+
+  <!-- Viewport fit for iPhone Notch / Dynamic Island -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>VintageVibe Mobile</title>
+  <link rel="manifest" href="manifest.json">
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #F9F8F6;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      overflow: hidden;
+      touch-action: none;
+    }
+    #loading-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #F9F8F6;
+      z-index: 9999;
+      transition: opacity 0.4s ease;
+    }
+    .logo-title {
+      font-size: 32px;
+      font-weight: 700;
+      color: #2C2A29;
+      letter-spacing: 1px;
+      margin-bottom: 24px;
+      font-family: "Playfair Display", Georgia, serif;
+    }
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid rgba(44, 42, 41, 0.15);
+      border-radius: 50%;
+      border-top-color: #B38E5D;
+      animation: spin 0.9s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .loading-sub {
+      margin-top: 16px;
+      font-size: 13px;
+      color: #7A7571;
+      letter-spacing: 0.5px;
+    }
+  </style>
+</head>
+<body>
+  <div id="loading-container">
+    <div class="logo-title">VintageVibe</div>
+    <div class="spinner"></div>
+    <div class="loading-sub">Cargando colección vintage...</div>
+  </div>
+
+  <script src="flutter_bootstrap.js" async></script>
+  <script>
+    function dismissVintageLoader() {
+      const loader = document.getElementById('loading-container');
+      if (loader && loader.style.opacity !== '0') {
+        loader.style.transition = 'opacity 0.4s ease';
+        loader.style.opacity = '0';
+        setTimeout(function() {
+          if (loader.parentNode) {
+            loader.parentNode.removeChild(loader);
+          }
+        }, 400);
+      }
+    }
+
+    // Detector por MutationObserver cuando Flutter renderiza la vista en el body
+    const observer = new MutationObserver(function(mutations, obs) {
+      if (document.querySelector('flt-glass-pane') || document.querySelector('flutter-view')) {
+        dismissVintageLoader();
+        obs.disconnect();
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    // Fallback de seguridad por tiempo (máximo 6 segundos)
+    setTimeout(dismissVintageLoader, 6000);
+  </script>
+</body>
+</html>
+
