@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/config/theme/app_typography.dart';
+import '../../data/repositories/publish_repository.dart';
 import '../providers/publish_provider.dart';
 
 /// Valida y sanitiza el precio para publicaciones C2C de prendas vintage.
@@ -37,9 +39,12 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
   XFile? _imageFile;
   final _titleController = TextEditingController();
   final _priceController = TextEditingController();
-  final _brandController = TextEditingController();
+  final _customBrandController = TextEditingController();
   final _descriptionController = TextEditingController();
-  
+
+  static const int _otherBrandId = -1;
+  int _selectedBrandId = 1;
+  int _selectedCategoryId = 1;
   String _selectedCondition = 'Excelente';
   final List<String> _conditions = ['Nuevo con etiqueta', 'Excelente', 'Buen estado', 'Usado'];
 
@@ -53,7 +58,7 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
   void dispose() {
     _titleController.dispose();
     _priceController.dispose();
-    _brandController.dispose();
+    _customBrandController.dispose();
     _descriptionController.dispose();
     super.dispose();
   }
@@ -117,7 +122,9 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
         image: _imageFile!,
         title: _titleController.text.trim(),
         price: parsedPrice,
-        brand: _brandController.text.trim(),
+        brandId: _selectedBrandId,
+        categoryId: _selectedCategoryId,
+        customBrand: _selectedBrandId == _otherBrandId ? _customBrandController.text.trim() : null,
         condition: _selectedCondition,
         description: _descriptionController.text.trim(),
       );
@@ -144,7 +151,7 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
         _formKey.currentState?.reset();
         _titleController.clear();
         _priceController.clear();
-        _brandController.clear();
+        _customBrandController.clear();
         _descriptionController.clear();
         setState(() {
           _imageFile = null;
@@ -267,34 +274,134 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
               ),
               const SizedBox(height: 16),
               
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _priceController,
-                      decoration: const InputDecoration(
-                        labelText: 'Precio (\$)',
-                        hintText: '0.00',
-                        errorMaxLines: 2,
+              TextFormField(
+                controller: _priceController,
+                decoration: const InputDecoration(
+                  labelText: 'Precio (\$)',
+                  hintText: '0.00',
+                  errorMaxLines: 2,
+                ),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                validator: validateAndSanitizePrice,
+              ),
+              const SizedBox(height: 16),
+
+              // Selector de Marca desde la BD + opción "Otra marca"
+              Consumer(
+                builder: (context, ref, _) {
+                  final brandsAsync = ref.watch(brandsProvider);
+                  final dbBrands = brandsAsync.asData?.value ??
+                      const [
+                        CatalogOption(id: 1, name: "Levi's"),
+                        CatalogOption(id: 2, name: 'Nike'),
+                        CatalogOption(id: 3, name: 'Adidas'),
+                      ];
+                  final items = [
+                    ...dbBrands,
+                    const CatalogOption(id: _otherBrandId, name: 'Otra marca'),
+                  ];
+                  final effectiveValue = items.any((b) => b.id == _selectedBrandId)
+                      ? _selectedBrandId
+                      : items.first.id;
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Marca', style: AppTypography.bodySmall.copyWith(color: AppColors.gray)),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: AppColors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<int>(
+                            value: effectiveValue,
+                            isExpanded: true,
+                            icon: const Icon(CupertinoIcons.chevron_down, size: 16, color: AppColors.gray),
+                            items: items.map((brand) {
+                              return DropdownMenuItem<int>(
+                                value: brand.id,
+                                child: Text(brand.name, style: AppTypography.bodyMedium),
+                              );
+                            }).toList(),
+                            onChanged: (val) {
+                              if (val != null) {
+                                setState(() => _selectedBrandId = val);
+                              }
+                            },
+                          ),
+                        ),
                       ),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      validator: validateAndSanitizePrice,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _brandController,
-                      decoration: const InputDecoration(
-                        labelText: 'Marca',
-                        hintText: 'Ej. Nike',
-                        errorMaxLines: 2,
+                      if (_selectedBrandId == _otherBrandId) ...[
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: _customBrandController,
+                          decoration: const InputDecoration(
+                            labelText: 'Especifica la marca',
+                            hintText: 'Ej. Carhartt, Ralph Lauren, Wrangler',
+                            errorMaxLines: 2,
+                          ),
+                          validator: (val) =>
+                              val == null || val.trim().isEmpty ? 'Ingresa el nombre de la marca' : null,
+                        ),
+                      ],
+                    ],
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // Selector de Categoría desde la BD
+              Consumer(
+                builder: (context, ref, _) {
+                  final categoriesAsync = ref.watch(categoriesProvider);
+                  final categories = categoriesAsync.asData?.value ??
+                      const [
+                        CatalogOption(id: 1, name: 'Ropa Exterior'),
+                        CatalogOption(id: 2, name: 'Camisetas'),
+                        CatalogOption(id: 3, name: 'Pantalones'),
+                      ];
+                  final effectiveCat = categories.any((c) => c.id == _selectedCategoryId)
+                      ? _selectedCategoryId
+                      : categories.first.id;
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Categoría', style: AppTypography.bodySmall.copyWith(color: AppColors.gray)),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: AppColors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<int>(
+                            value: effectiveCat,
+                            isExpanded: true,
+                            icon: const Icon(CupertinoIcons.chevron_down, size: 16, color: AppColors.gray),
+                            items: categories.map((cat) {
+                              return DropdownMenuItem<int>(
+                                value: cat.id,
+                                child: Text(cat.name, style: AppTypography.bodyMedium),
+                              );
+                            }).toList(),
+                            onChanged: (val) {
+                              if (val != null) {
+                                setState(() => _selectedCategoryId = val);
+                              }
+                            },
+                          ),
+                        ),
                       ),
-                      validator: (val) => val == null || val.trim().isEmpty ? 'Requerido' : null,
-                    ),
-                  ),
-                ],
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: 16),
 

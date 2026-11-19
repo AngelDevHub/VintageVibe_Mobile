@@ -15,6 +15,8 @@ import '../../features/cart/presentation/screens/cart_screen.dart';
 import '../../features/cart/presentation/screens/checkout_screen.dart';
 import '../../features/orders/presentation/screens/orders_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
+import '../../features/profile/presentation/screens/favorites_screen.dart';
+import '../../features/profile/presentation/screens/settings_screen.dart';
 import '../../shared/widgets/vv_shell.dart';
 
 // Route names
@@ -30,6 +32,8 @@ class AppRoutes {
   static const checkout = 'checkout';
   static const orders = 'orders';
   static const profile = 'profile';
+  static const favorites = 'favorites';
+  static const settings = 'settings';
 }
 
 class RouterNotifier extends ChangeNotifier {
@@ -70,7 +74,7 @@ class RouterNotifier extends ChangeNotifier {
     if (isAuthenticated && isAuthPage) return '/home';
 
     // Protected pages — redirect to login if not authenticated
-    final protectedPaths = ['/publish', '/my-listings', '/cart', '/checkout', '/orders', '/profile'];
+    final protectedPaths = ['/publish', '/my-listings', '/cart', '/checkout', '/orders', '/profile', '/favorites', '/settings'];
     final isProtected = protectedPaths.any((p) => currentPath.startsWith(p));
     if (!isAuthenticated && isProtected) return '/login';
 
@@ -157,6 +161,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/checkout',
         name: AppRoutes.checkout,
         builder: (context, state) => const CheckoutScreen(),
+      ),
+      GoRoute(
+        path: '/favorites',
+        name: AppRoutes.favorites,
+        builder: (context, state) => const FavoritesScreen(),
+      ),
+      GoRoute(
+        path: '/settings',
+        name: AppRoutes.settings,
+        builder: (context, state) => const SettingsScreen(),
       ),
     ],
   );

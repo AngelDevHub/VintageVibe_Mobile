@@ -8,11 +8,38 @@ import '../../../../shared/widgets/ios_pressable.dart';
 import '../../data/models/product.dart';
 import '../providers/catalog_provider.dart';
 
-class CatalogScreen extends ConsumerWidget {
+class CatalogScreen extends ConsumerStatefulWidget {
   const CatalogScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CatalogScreen> createState() => _CatalogScreenState();
+}
+
+class _CatalogScreenState extends ConsumerState<CatalogScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<Product> _filterProducts(List<Product> products) {
+    final q = _searchQuery.trim().toLowerCase();
+    if (q.isEmpty) return products;
+    return products.where((p) {
+      final nameMatch = p.name.toLowerCase().contains(q);
+      final brandMatch = (p.brandName ?? '').toLowerCase().contains(q);
+      final categoryMatch = (p.categoryName ?? '').toLowerCase().contains(q);
+      final conditionMatch = (p.conditionName ?? '').toLowerCase().contains(q);
+      final sizeMatch = p.variants.any((v) => v.size.toLowerCase().contains(q));
+      return nameMatch || brandMatch || categoryMatch || conditionMatch || sizeMatch;
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final productsAsync = ref.watch(productsProvider);
     final mediaQuery = MediaQuery.of(context);
     final isLandscape = mediaQuery.orientation == Orientation.landscape;
@@ -38,85 +65,152 @@ class CatalogScreen extends ConsumerWidget {
           const SizedBox(width: 4),
         ],
       ),
-      body: RefreshIndicator(
-        color: AppColors.dark,
-        backgroundColor: AppColors.white,
-        onRefresh: () async {
-          ref.invalidate(productsProvider);
-          await ref.read(productsProvider.future);
-        },
-        child: productsAsync.when(
-          data: (products) {
-            if (products.isEmpty) {
-              return ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                children: [
-                  const SizedBox(height: 120),
-                  const Icon(CupertinoIcons.tag, size: 36, color: AppColors.gray),
-                  const SizedBox(height: 12),
-                  Center(
-                    child: Text(
-                      'No hay prendas disponibles',
-                      style: AppTypography.bodyMedium.copyWith(color: AppColors.gray),
-                    ),
-                  ),
-                ],
-              );
-            }
-
-            return GridView.builder(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: crossAxisCount,
-                childAspectRatio: 0.54,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 24,
+      body: Column(
+        children: [
+          // Buscador editorial estilo iOS
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            child: Container(
+              height: 40,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceSoft,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.border, width: 0.6),
               ),
-              itemCount: products.length,
-              itemBuilder: (context, index) {
-                return _EditorialProductCard(product: products[index]);
-              },
-            );
-          },
-          loading: () => const Center(
-            child: CupertinoActivityIndicator(radius: 12, color: AppColors.dark),
-          ),
-          error: (error, stack) => ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            children: [
-              const SizedBox(height: 120),
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Column(
-                    children: [
-                      const Icon(CupertinoIcons.wifi_slash, size: 36, color: AppColors.gray),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No se pudieron cargar las prendas',
-                        style: AppTypography.headlineSmall,
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Verifica tu conexión a internet o el estado del servidor e inténtalo de nuevo.',
-                        style: AppTypography.bodySmall,
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 24),
-                      ElevatedButton.icon(
-                        onPressed: () => ref.invalidate(productsProvider),
-                        icon: const Icon(CupertinoIcons.refresh, size: 16),
-                        label: const Text('Reintentar'),
-                      ),
-                    ],
-                  ),
+              child: TextField(
+                controller: _searchController,
+                onChanged: (value) => setState(() => _searchQuery = value),
+                style: AppTypography.bodyMedium,
+                textInputAction: TextInputAction.search,
+                decoration: InputDecoration(
+                  hintText: 'Buscar prendas, marcas o tallas...',
+                  hintStyle: AppTypography.bodySmall.copyWith(color: AppColors.gray),
+                  prefixIcon: const Icon(CupertinoIcons.search, size: 16, color: AppColors.gray),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(
+                            CupertinoIcons.xmark_circle_fill,
+                            size: 16,
+                            color: AppColors.gray,
+                          ),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _searchQuery = '');
+                          },
+                        )
+                      : null,
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  filled: false,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
                 ),
               ),
-            ],
+            ),
           ),
-        ),
+
+          // Lista / Grid de productos
+          Expanded(
+            child: RefreshIndicator(
+              color: AppColors.dark,
+              backgroundColor: AppColors.white,
+              onRefresh: () async {
+                ref.invalidate(productsProvider);
+                await ref.read(productsProvider.future);
+              },
+              child: productsAsync.when(
+                data: (products) {
+                  if (products.isEmpty) {
+                    return ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: [
+                        const SizedBox(height: 120),
+                        const Icon(CupertinoIcons.tag, size: 36, color: AppColors.gray),
+                        const SizedBox(height: 12),
+                        Center(
+                          child: Text(
+                            'No hay prendas disponibles',
+                            style: AppTypography.bodyMedium.copyWith(color: AppColors.gray),
+                          ),
+                        ),
+                      ],
+                    );
+                  }
+
+                  final filtered = _filterProducts(products);
+                  if (filtered.isEmpty) {
+                    return ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: [
+                        const SizedBox(height: 100),
+                        const Icon(CupertinoIcons.search, size: 36, color: AppColors.gray),
+                        const SizedBox(height: 12),
+                        Center(
+                          child: Text(
+                            'Sin resultados para "$_searchQuery"',
+                            style: AppTypography.bodyMedium.copyWith(color: AppColors.gray),
+                          ),
+                        ),
+                      ],
+                    );
+                  }
+
+                  return GridView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      childAspectRatio: 0.54,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 24,
+                    ),
+                    itemCount: filtered.length,
+                    itemBuilder: (context, index) {
+                      return _EditorialProductCard(product: filtered[index]);
+                    },
+                  );
+                },
+                loading: () => const Center(
+                  child: CupertinoActivityIndicator(radius: 12, color: AppColors.dark),
+                ),
+                error: (error, stack) => ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [
+                    const SizedBox(height: 120),
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Column(
+                          children: [
+                            const Icon(CupertinoIcons.wifi_slash, size: 36, color: AppColors.gray),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No se pudieron cargar las prendas',
+                              style: AppTypography.headlineSmall,
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Verifica tu conexión a internet o el estado del servidor e inténtalo de nuevo.',
+                              style: AppTypography.bodySmall,
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 24),
+                            ElevatedButton.icon(
+                              onPressed: () => ref.invalidate(productsProvider),
+                              icon: const Icon(CupertinoIcons.refresh, size: 16),
+                              label: const Text('Reintentar'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -161,7 +255,6 @@ class _EditorialProductCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Fotografía limpia en proporción vertical 3:4 sin botones ni etiquetas encima
           AspectRatio(
             aspectRatio: 3 / 4,
             child: Container(
@@ -185,7 +278,6 @@ class _EditorialProductCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          // 2. Título de la prenda (máx. 2 líneas)
           Text(
             product.name,
             style: AppTypography.titleSmall.copyWith(
@@ -198,7 +290,6 @@ class _EditorialProductCard extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 4),
-          // 3. Metadato corto (Talla · Marca/Condición)
           Text(
             _buildMetadata(),
             style: AppTypography.labelMedium.copyWith(
@@ -209,7 +300,6 @@ class _EditorialProductCard extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 6),
-          // 4. Precio en tipografía firme + indicador discreto de disponibilidad
           Row(
             children: [
               Text(

@@ -5,6 +5,20 @@ import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../../catalog/data/models/product.dart';
 
+class CatalogOption {
+  final int id;
+  final String name;
+
+  const CatalogOption({required this.id, required this.name});
+
+  factory CatalogOption.fromJson(Map<String, dynamic> json) {
+    return CatalogOption(
+      id: (json['id'] as num).toInt(),
+      name: json['name']?.toString() ?? '',
+    );
+  }
+}
+
 class PublishRepository {
   final Dio _dio;
 
@@ -20,6 +34,30 @@ class PublishRepository {
     });
     final response = await _dio.post('/images/upload', data: formData);
     return response.data['url'] as String;
+  }
+
+  Future<List<CatalogOption>> getBrands() async {
+    final response = await _dio.get(ApiEndpoints.brands);
+    final raw = response.data is List
+        ? response.data as List
+        : (response.data is Map && response.data['content'] is List
+            ? response.data['content'] as List
+            : <dynamic>[]);
+    return raw
+        .map((e) => CatalogOption.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<CatalogOption>> getCategories() async {
+    final response = await _dio.get(ApiEndpoints.categories);
+    final raw = response.data is List
+        ? response.data as List
+        : (response.data is Map && response.data['content'] is List
+            ? response.data['content'] as List
+            : <dynamic>[]);
+    return raw
+        .map((e) => CatalogOption.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<Product> publishProduct(Map<String, dynamic> productData) async {

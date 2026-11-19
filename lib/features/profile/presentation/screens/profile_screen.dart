@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -31,13 +32,13 @@ class ProfileScreen extends ConsumerWidget {
           children: [
             // Avatar
             CircleAvatar(
-              radius: 50,
-              backgroundColor: AppColors.primaryLight,
+              radius: 44,
+              backgroundColor: AppColors.surfaceSoft,
               child: Text(
                 (user != null && user.firstName.isNotEmpty)
                     ? user.firstName.substring(0, 1).toUpperCase()
                     : 'V',
-                style: AppTypography.displayMedium.copyWith(color: AppColors.white),
+                style: AppTypography.displayMedium.copyWith(color: AppColors.dark),
               ),
             ),
             const SizedBox(height: 16),
@@ -56,29 +57,29 @@ class ProfileScreen extends ConsumerWidget {
 
             // Options
             _buildProfileOption(
-              icon: Icons.favorite_border,
+              icon: CupertinoIcons.heart,
               title: 'Mis Favoritos',
-              onTap: () {},
+              onTap: () => context.push('/favorites'),
             ),
             _buildProfileOption(
-              icon: Icons.local_shipping_outlined,
+              icon: CupertinoIcons.cube_box,
               title: 'Mis Pedidos',
               onTap: () => context.push('/orders'),
             ),
             _buildProfileOption(
-              icon: Icons.store_outlined,
+              icon: CupertinoIcons.tag,
               title: 'Mis Publicaciones C2C',
               onTap: () => context.push('/my-listings'),
             ),
             _buildProfileOption(
-              icon: Icons.watch_outlined,
+              icon: CupertinoIcons.bell,
               title: 'Práctica 2: Probar Alerta Wearable',
               onTap: () => _showWearableDemoSheet(context, ref),
             ),
             _buildProfileOption(
-              icon: Icons.settings_outlined,
+              icon: CupertinoIcons.settings,
               title: 'Configuración',
-              onTap: () {},
+              onTap: () => context.push('/settings'),
             ),
             
             const SizedBox(height: 32),

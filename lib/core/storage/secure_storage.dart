@@ -72,4 +72,11 @@ class SecureStorage {
     final token = await getToken();
     return token != null && token.isNotEmpty;
   }
+
+  // ==================== Generic Preferences / Favorites ====================
+  static Future<void> writeValue(String key, String value) => _write(key, value);
+
+  static Future<String?> readValue(String key) => _read(key);
+
+  static Future<void> deleteValue(String key) => _delete(key);
 }

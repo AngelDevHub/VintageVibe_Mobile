@@ -22,7 +22,7 @@ class VVShell extends StatelessWidget {
     if (location.startsWith('/profile')) currentIndex = 3;
 
     final bottomInset = MediaQuery.of(context).padding.bottom;
-    final bottomPadding = bottomInset > 16 ? bottomInset - 14 : (bottomInset > 0 ? bottomInset : 8.0);
+    final double bottomPadding = (bottomInset > 14 ? bottomInset - 20 : bottomInset).clamp(4.0, 18.0);
 
     return Scaffold(
       backgroundColor: AppColors.light,
@@ -34,9 +34,9 @@ class VVShell extends StatelessWidget {
             top: BorderSide(color: AppColors.border, width: 0.5),
           ),
         ),
-        padding: EdgeInsets.only(top: 8, bottom: bottomPadding),
+        padding: EdgeInsets.only(top: 5, bottom: bottomPadding),
         child: SizedBox(
-          height: 44,
+          height: 38,
           child: Row(
             children: [
               _EditorialNavItem(
@@ -103,16 +103,16 @@ class _EditorialNavItem extends StatelessWidget {
           children: [
             Icon(
               isSelected ? activeIcon : icon,
-              size: 22,
+              size: 20,
               color: color,
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             Text(
               label,
               style: AppTypography.labelSmall.copyWith(
                 color: color,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                fontSize: 11,
+                fontSize: 10,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

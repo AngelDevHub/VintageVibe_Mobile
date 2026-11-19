@@ -7,6 +7,7 @@ import '../../../../shared/widgets/ios_pressable.dart';
 import '../../../cart/presentation/providers/cart_provider.dart';
 import '../../data/models/product.dart';
 import '../providers/catalog_provider.dart';
+import '../providers/favorites_provider.dart';
 
 class ProductDetailScreen extends ConsumerStatefulWidget {
   final int productId;
@@ -71,6 +72,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final productAsync = ref.watch(singleProductProvider(widget.productId));
+    final isFavorite = ref.watch(favoritesProvider).contains(widget.productId);
 
     return Scaffold(
       backgroundColor: AppColors.light,
@@ -83,6 +85,28 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
         ),
         title: Text('Detalle', style: AppTypography.titleMedium),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Icon(
+              isFavorite ? CupertinoIcons.heart_fill : CupertinoIcons.heart,
+              size: 20,
+              color: isFavorite ? AppColors.error : AppColors.dark,
+            ),
+            onPressed: () {
+              ref.read(favoritesProvider.notifier).toggleFavorite(widget.productId);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    isFavorite ? 'Eliminado de tus favoritos' : 'Guardado en tus favoritos',
+                  ),
+                  duration: const Duration(seconds: 1),
+                ),
+              );
+            },
+            tooltip: 'Guardar en favoritos',
+          ),
+          const SizedBox(width: 4),
+        ],
       ),
       body: productAsync.when(
         loading: () => const Center(

@@ -20,36 +20,47 @@ class PublishNotifier extends Notifier<PublishState> {
     required XFile image,
     required String title,
     required double price,
-    required String brand,
+    required int brandId,
+    required int categoryId,
+    String? customBrand,
     required String condition,
     required String description,
   }) async {
     state = PublishState(isLoading: true);
     try {
       final repo = ref.read(publishRepositoryProvider);
-      
-      // 1. Upload image
+
+      // 1. Subir imagen
       final imageUrl = await repo.uploadImage(image);
-      
-      // 2. Map condition to ID (Mocked mapping based on your DB: 1=Excelente, 2=Buen estado, etc.)
+
+      // 2. Mapear condición a ID real en BD
       int conditionId = 1;
       if (condition == 'Nuevo con etiqueta') conditionId = 1;
       if (condition == 'Excelente') conditionId = 1;
       if (condition == 'Buen estado') conditionId = 2;
       if (condition == 'Usado') conditionId = 3;
 
-      // 3. Create ProductDTO map
+      // Si eligió "Otra marca" (-1), conservamos la marca escrita en la descripción
+      // y enviamos un brandId válido (1) para cumplir la FK en MySQL.
+      final int effectiveBrandId = brandId > 0 ? brandId : 1;
+      final String finalDescription = (customBrand != null && customBrand.trim().isNotEmpty)
+          ? (description.trim().isEmpty
+              ? 'Marca: ${customBrand.trim()}'
+              : 'Marca: ${customBrand.trim()} · ${description.trim()}')
+          : description.trim();
+
+      // 3. Crear payload ProductDTO
       final data = {
         'name': title,
-        'description': description,
+        'description': finalDescription,
         'price': price,
-        'categoryId': 1, // Default to a category since there's no UI for it yet
-        'brandId': 1, // Default to a brand ID since there's no UI dropdown yet
+        'categoryId': categoryId > 0 ? categoryId : 1,
+        'brandId': effectiveBrandId,
         'conditionId': conditionId,
         'images': [
           {
             'url': imageUrl,
-            'primary': true
+            'primary': true,
           }
         ],
         'variants': [
@@ -60,15 +71,14 @@ class PublishNotifier extends Notifier<PublishState> {
             'stock': 1,
             'price': price,
           }
-        ]
+        ],
       };
 
       final product = await repo.publishProduct(data);
       state = PublishState(isLoading: false, publishedProduct: product);
-      
-      // Refresh my listings
+
       ref.invalidate(myListingsProvider);
-      ref.invalidate(productsProvider); // If catalog needs refresh
+      ref.invalidate(productsProvider);
     } catch (e) {
       state = PublishState(isLoading: false, error: e.toString());
     }
@@ -77,6 +87,14 @@ class PublishNotifier extends Notifier<PublishState> {
 
 final publishProvider = NotifierProvider<PublishNotifier, PublishState>(() {
   return PublishNotifier();
+});
+
+final brandsProvider = FutureProvider<List<CatalogOption>>((ref) async {
+  return ref.watch(publishRepositoryProvider).getBrands();
+});
+
+final categoriesProvider = FutureProvider<List<CatalogOption>>((ref) async {
+  return ref.watch(publishRepositoryProvider).getCategories();
 });
 
 final myListingsProvider = FutureProvider.autoDispose<List<Product>>((ref) async {
