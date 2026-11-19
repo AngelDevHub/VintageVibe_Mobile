@@ -22,26 +22,20 @@ class VVShell extends StatelessWidget {
     if (location.startsWith('/cart')) currentIndex = 2;
     if (location.startsWith('/profile')) currentIndex = 3;
 
-    final bottomInset = MediaQuery.of(context).padding.bottom;
-    // Pegada hasta abajo, justo rozando por encima del indicador home de iPhone
-    final double bottomOffset = bottomInset > 20 ? 12.0 : 8.0;
-
     return Scaffold(
       backgroundColor: AppColors.light,
       extendBody: true,
       body: Stack(
+        fit: StackFit.expand,
         children: [
-          // Contenido principal con espacio inferior sutil para no tapar el último ítem al hacer scroll
-          Padding(
-            padding: EdgeInsets.only(bottom: 72 + bottomOffset),
-            child: child,
-          ),
+          // Contenido a pantalla completa para que pase detrás del cristal translúcido
+          child,
 
-          // Barra de navegación flotante estilo iOS Liquid Glass hasta abajo
+          // Barra de navegación flotante estilo iOS Liquid Glass pegada casi al borde inferior
           Positioned(
-            left: 16,
-            right: 16,
-            bottom: bottomOffset,
+            left: 14,
+            right: 14,
+            bottom: 6,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(32),
               child: BackdropFilter(

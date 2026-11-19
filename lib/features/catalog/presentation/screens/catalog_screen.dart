@@ -157,7 +157,7 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
 
                   return GridView.builder(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 92),
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: crossAxisCount,
                       childAspectRatio: 0.54,
