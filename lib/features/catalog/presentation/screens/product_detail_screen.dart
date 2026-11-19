@@ -1,10 +1,12 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/catalog_provider.dart';
-import '../../../cart/presentation/providers/cart_provider.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/config/theme/app_typography.dart';
+import '../../../../shared/widgets/ios_pressable.dart';
+import '../../../cart/presentation/providers/cart_provider.dart';
 import '../../data/models/product.dart';
+import '../providers/catalog_provider.dart';
 
 class ProductDetailScreen extends ConsumerStatefulWidget {
   final int productId;
@@ -18,50 +20,94 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   int quantity = 1;
   ProductVariant? selectedVariant;
 
+  void _showSizeGuideModal(BuildContext context, String sizeLabel) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.light,
+      showDragHandle: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Guía de medidas vintage', style: AppTypography.headlineSmall),
+                const SizedBox(height: 8),
+                Text(
+                  'En ropa vintage la talla en etiqueta puede variar respecto al tallaje actual. Verifica las medidas reales en plano:',
+                  style: AppTypography.bodySmall,
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.border, width: 0.8),
+                  ),
+                  child: Column(
+                    children: [
+                      _MeasurementRow(label: 'Talla en etiqueta', value: sizeLabel),
+                      const Divider(height: 20),
+                      const _MeasurementRow(label: 'Ancho (axila a axila)', value: '54 – 58 cm aprox.'),
+                      const Divider(height: 20),
+                      const _MeasurementRow(label: 'Largo total (hombro a ruedo)', value: '68 – 72 cm aprox.'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final productAsync = ref.watch(singleProductProvider(widget.productId));
 
     return Scaffold(
       backgroundColor: AppColors.light,
-      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppColors.light,
         elevation: 0,
-        leading: Container(
-          margin: const EdgeInsets.all(8),
-          decoration: BoxDecoration(color: AppColors.white.withOpacity(0.9), shape: BoxShape.circle),
-          child: IconButton(
-            icon: const Icon(Icons.arrow_back, color: AppColors.dark),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
+        leading: IconButton(
+          icon: const Icon(CupertinoIcons.back, size: 20, color: AppColors.dark),
+          onPressed: () => Navigator.of(context).pop(),
         ),
-        actions: [
-          Container(
-            margin: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: AppColors.white.withOpacity(0.9), shape: BoxShape.circle),
-            child: IconButton(
-              icon: const Icon(Icons.favorite_border, color: AppColors.dark),
-              onPressed: () {},
-            ),
-          ),
-        ],
+        title: Text('Detalle', style: AppTypography.titleMedium),
+        centerTitle: true,
       ),
       body: productAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+        loading: () => const Center(
+          child: CupertinoActivityIndicator(radius: 12, color: AppColors.dark),
+        ),
         error: (err, stack) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.search_off, size: 64, color: AppColors.gray),
-              const SizedBox(height: 16),
-              Text('Prenda no encontrada o en proceso de carga', style: AppTypography.titleMedium),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Volver al Catálogo'),
-              ),
-            ],
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(CupertinoIcons.search, size: 36, color: AppColors.gray),
+                const SizedBox(height: 16),
+                Text(
+                  'Prenda no encontrada o en proceso de carga',
+                  style: AppTypography.titleMedium,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Volver al Catálogo'),
+                ),
+              ],
+            ),
           ),
         ),
         data: (product) {
@@ -89,6 +135,12 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
           }
 
           final hasImage = product.images.isNotEmpty;
+          final availabilityText = variantStock <= 0
+              ? 'Agotado'
+              : (variantStock == 1 ? 'Pieza única' : '$variantStock disponibles');
+          final availabilityColor = variantStock <= 0
+              ? AppColors.error
+              : (variantStock == 1 ? AppColors.secondary : AppColors.gray);
 
           return Column(
             children: [
@@ -97,245 +149,252 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Image Hero
-                      Stack(
-                        children: [
-                          Container(
-                            height: 400,
-                            width: double.infinity,
+                      // Fotografía limpia en proporción vertical 3:4 sin etiquetas encima
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                        child: AspectRatio(
+                          aspectRatio: 3 / 4,
+                          child: Container(
                             decoration: BoxDecoration(
-                              color: AppColors.grayLight.withOpacity(0.3),
-                              image: hasImage
-                                  ? DecorationImage(image: NetworkImage(product.images.first), fit: BoxFit.cover)
-                                  : null,
+                              color: AppColors.surfaceSoft,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppColors.border, width: 0.5),
                             ),
-                            child: !hasImage 
-                              ? const Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.image_not_supported, size: 80, color: AppColors.gray),
-                                    SizedBox(height: 8),
-                                    Text('Sin imagen'),
-                                  ],
-                                )
-                              : null,
-                          ),
-                          if (product.conditionName != null)
-                            Positioned(
-                              bottom: 32,
-                              left: 16,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: AppColors.white,
-                                  borderRadius: BorderRadius.circular(20),
-                                  boxShadow: AppColors.shadowSm,
-                                ),
-                                child: Text(
-                                  product.conditionName!,
-                                  style: AppTypography.bodySmall.copyWith(fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                      
-                      // Details Container (Overlaps the image slightly)
-                      Container(
-                        transform: Matrix4.translationValues(0, -20, 0),
-                        decoration: const BoxDecoration(
-                          color: AppColors.light,
-                          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Top info row
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    product.brandName ?? 'Vintage',
-                                    style: AppTypography.bodyMedium.copyWith(color: AppColors.gray, fontWeight: FontWeight.bold),
-                                  ),
-                                  Row(
-                                    children: [
-                                      const Icon(Icons.star, color: Colors.amber, size: 18),
-                                      const SizedBox(width: 4),
-                                      Text('0.0 (0 reseñas)', style: AppTypography.bodySmall.copyWith(color: AppColors.gray)),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              
-                              // Title and Price
-                              Text(product.name, style: AppTypography.displayMedium.copyWith(color: AppColors.dark, height: 1.2)),
-                              const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  Text(
-                                    'MXN ${product.price.toStringAsFixed(0)}',
-                                    style: AppTypography.displayMedium.copyWith(color: AppColors.primary, fontSize: 28),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  if (variantStock <= 0)
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: Colors.red.shade50,
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(color: Colors.red.shade200),
-                                      ),
-                                      child: Text('Agotado', style: TextStyle(color: Colors.red.shade700, fontWeight: FontWeight.bold, fontSize: 12)),
-                                    )
-                                  else if (variantStock <= 2)
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: Colors.amber.shade50,
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(color: Colors.amber.shade300),
-                                      ),
-                                      child: Text('¡Última(s) $variantStock pza(s)!', style: TextStyle(color: Colors.amber.shade900, fontWeight: FontWeight.bold, fontSize: 12)),
+                            clipBehavior: Clip.antiAlias,
+                            child: hasImage
+                                ? Image.network(
+                                    product.images.first,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => const Center(
+                                      child: Icon(CupertinoIcons.photo, size: 40, color: AppColors.gray),
                                     ),
-                                ],
-                              ),
-                              const SizedBox(height: 24),
-                              
-                              // Variants Selector (Mobile Optimized)
-                              if (product.variants.isNotEmpty) ...[
+                                  )
+                                : const Center(
+                                    child: Icon(CupertinoIcons.photo, size: 40, color: AppColors.gray),
+                                  ),
+                          ),
+                        ),
+                      ),
+
+                      // Bloque editorial de información
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Marca + Disponibilidad discreta
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
                                 Text(
-                                  'Talla y Color',
-                                  style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.bold, color: AppColors.dark),
-                                ),
-                                const SizedBox(height: 12),
-                                SizedBox(
-                                  height: 80,
-                                  child: ListView.builder(
-                                    scrollDirection: Axis.horizontal,
-                                    itemCount: product.variants.length,
-                                    itemBuilder: (context, index) {
-                                      final v = product.variants[index];
-                                      final isSelected = selectedVariant?.id == v.id;
-                                      return GestureDetector(
-                                        onTap: () => setState(() => selectedVariant = v),
-                                        child: Container(
-                                          margin: const EdgeInsets.only(right: 12),
-                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                          decoration: BoxDecoration(
-                                            color: isSelected ? AppColors.dark : AppColors.white,
-                                            borderRadius: BorderRadius.circular(16),
-                                            border: Border.all(color: isSelected ? AppColors.dark : AppColors.grayLight.withOpacity(0.5)),
-                                            boxShadow: isSelected ? AppColors.shadowSm : null,
-                                          ),
-                                          child: Column(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                              Text(
-                                                '${v.size} · ${v.color}',
-                                                style: AppTypography.bodyMedium.copyWith(
-                                                  color: isSelected ? AppColors.white : AppColors.dark,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Text(
-                                                v.stock <= 0 ? 'Agotado' : '${v.stock} disp.',
-                                                style: AppTypography.bodySmall.copyWith(
-                                                  color: v.stock <= 0
-                                                      ? Colors.red.shade400
-                                                      : (isSelected ? AppColors.grayLight : Colors.green.shade700),
-                                                  fontSize: 11,
-                                                  fontWeight: v.stock <= 0 ? FontWeight.bold : FontWeight.normal,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      );
-                                    },
+                                  (product.brandName ?? 'Vintage Seleccionado').toUpperCase(),
+                                  style: AppTypography.labelSmall.copyWith(
+                                    color: AppColors.gray,
+                                    letterSpacing: 1.0,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                                const SizedBox(height: 24),
+                                Text(
+                                  availabilityText,
+                                  style: AppTypography.labelMedium.copyWith(
+                                    color: availabilityColor,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
                               ],
+                            ),
+                            const SizedBox(height: 8),
 
-                              // Description
-                              Text('Descripción', style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.bold, color: AppColors.dark)),
-                              const SizedBox(height: 8),
-                              Text(
-                                product.description.isEmpty ? 'Sin descripción detallada.' : product.description,
-                                style: AppTypography.bodyMedium.copyWith(color: AppColors.gray, height: 1.5),
+                            // Título editorial
+                            Text(
+                              product.name,
+                              style: AppTypography.displaySmall.copyWith(
+                                color: AppColors.dark,
+                                height: 1.2,
                               ),
-                              const SizedBox(height: 32),
-                              
-                              // Trust Badges (Stacked for mobile)
-                              _buildMobileTrustCard(
-                                icon: Icons.shield_outlined,
-                                title: 'Compra protegida',
-                                subtitle: 'Flujo seguro y revisión antes del pago',
-                              ),
+                            ),
+                            const SizedBox(height: 8),
+
+                            // Precio firme
+                            Text(
+                              '\$${product.price.toStringAsFixed(2)} MXN',
+                              style: AppTypography.price,
+                            ),
+                            const SizedBox(height: 20),
+                            const Divider(),
+                            const SizedBox(height: 20),
+
+                            // Datos clave de ropa vintage (Condición, Talla / Medidas, Origen)
+                            _VintageSpecRow(
+                              icon: CupertinoIcons.tag,
+                              label: 'Condición',
+                              value: product.conditionName ?? 'Excelente estado vintage',
+                            ),
+                            const SizedBox(height: 12),
+                            _VintageSpecRow(
+                              icon: CupertinoIcons.square_grid_2x2,
+                              label: 'Categoría',
+                              value: product.categoryName ?? 'Moda circular',
+                            ),
+                            if (product.sellerName != null) ...[
                               const SizedBox(height: 12),
-                              _buildMobileTrustCard(
-                                icon: Icons.replay_outlined,
-                                title: 'Devoluciones fáciles',
-                                subtitle: 'Tienes hasta 30 días para gestionar cambios',
-                              ),
-                              const SizedBox(height: 32),
-                              
-                              // Bottom Info
-                              Wrap(
-                                spacing: 16,
-                                runSpacing: 12,
-                                children: [
-                                  _buildSmallTrustIcon(Icons.local_shipping_outlined, 'Envío rápido'),
-                                  _buildSmallTrustIcon(Icons.lock_outline, 'Compra segura'),
-                                  _buildSmallTrustIcon(Icons.category_outlined, product.categoryName ?? 'Ropa'),
-                                ],
+                              _VintageSpecRow(
+                                icon: CupertinoIcons.person,
+                                label: 'Vendedor',
+                                value: product.sellerName!,
                               ),
                             ],
-                          ),
+                            const SizedBox(height: 16),
+
+                            // Botón discreto para abrir modal de guía de medidas
+                            IosPressable(
+                              onTap: () => _showSizeGuideModal(
+                                context,
+                                selectedVariant?.size ?? 'Única',
+                              ),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: AppColors.surfaceSoft,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: AppColors.border, width: 0.6),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(CupertinoIcons.resize, size: 16, color: AppColors.dark),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        'Talla etiqueta vs. medidas reales',
+                                        style: AppTypography.labelLarge,
+                                      ),
+                                    ),
+                                    const Icon(CupertinoIcons.chevron_right, size: 14, color: AppColors.gray),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+
+                            // Selector de variantes (Talla y Color)
+                            if (product.variants.isNotEmpty) ...[
+                              Text('Talla y Color', style: AppTypography.titleSmall),
+                              const SizedBox(height: 12),
+                              Wrap(
+                                spacing: 10,
+                                runSpacing: 10,
+                                children: product.variants.map((v) {
+                                  final isSelected = selectedVariant?.id == v.id;
+                                  return IosPressable(
+                                    onTap: () => setState(() => selectedVariant = v),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                      decoration: BoxDecoration(
+                                        color: isSelected ? AppColors.dark : AppColors.white,
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(
+                                          color: isSelected ? AppColors.dark : AppColors.border,
+                                          width: 0.8,
+                                        ),
+                                      ),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            '${v.size} · ${v.color}',
+                                            style: AppTypography.labelLarge.copyWith(
+                                              color: isSelected ? AppColors.white : AppColors.dark,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            v.stock <= 0 ? 'Agotado' : '${v.stock} disp.',
+                                            style: AppTypography.labelSmall.copyWith(
+                                              color: v.stock <= 0
+                                                  ? AppColors.error
+                                                  : (isSelected ? AppColors.surfaceSoft : AppColors.gray),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                              const SizedBox(height: 24),
+                            ],
+
+                            // Descripción
+                            Text('Descripción', style: AppTypography.titleSmall),
+                            const SizedBox(height: 8),
+                            Text(
+                              product.description.isEmpty
+                                  ? 'Prenda vintage seleccionada cuidadosamente.'
+                                  : product.description,
+                              style: AppTypography.bodyMedium.copyWith(
+                                color: AppColors.gray,
+                                height: 1.55,
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            const Divider(),
+                            const SizedBox(height: 16),
+
+                            // Garantías editoriales discretas
+                            Row(
+                              children: [
+                                const Icon(CupertinoIcons.checkmark_shield, size: 16, color: AppColors.dark),
+                                const SizedBox(width: 8),
+                                Text('Compra protegida', style: AppTypography.bodySmall),
+                                const SizedBox(width: 20),
+                                const Icon(CupertinoIcons.arrow_2_circlepath, size: 16, color: AppColors.dark),
+                                const SizedBox(width: 8),
+                                Text('Moda circular verificada', style: AppTypography.bodySmall),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
               ),
-              
-              // Bottom Action Bar (Sticky)
+
+              // Barra inferior fija estilo iOS (borde sutil 0.5px, sin sombras pesadas)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                decoration: BoxDecoration(
-                  color: AppColors.white,
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.05), offset: const Offset(0, -4), blurRadius: 10),
-                  ],
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                decoration: const BoxDecoration(
+                  color: AppColors.light,
+                  border: Border(top: BorderSide(color: AppColors.border, width: 0.5)),
                 ),
                 child: SafeArea(
                   top: false,
                   child: Row(
                     children: [
-                      // Quantity Selector Minimal
+                      // Selector de cantidad minimalista
                       Container(
                         decoration: BoxDecoration(
-                          color: AppColors.light,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppColors.grayLight.withOpacity(0.3)),
+                          color: AppColors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.border, width: 0.8),
                         ),
                         child: Row(
                           children: [
                             IconButton(
-                              icon: const Icon(Icons.remove, size: 20),
-                              onPressed: (remainingStock > 0 && quantity > 1) ? () => setState(() => quantity--) : null,
+                              icon: const Icon(CupertinoIcons.minus, size: 16),
+                              color: AppColors.dark,
+                              onPressed: (remainingStock > 0 && quantity > 1)
+                                  ? () => setState(() => quantity--)
+                                  : null,
                             ),
                             Text(
                               '${remainingStock > 0 ? quantity : 0}',
-                              style: AppTypography.bodyLarge.copyWith(fontWeight: FontWeight.bold),
+                              style: AppTypography.titleMedium,
                             ),
                             IconButton(
-                              icon: const Icon(Icons.add, size: 20),
+                              icon: const Icon(CupertinoIcons.plus, size: 16),
+                              color: AppColors.dark,
                               onPressed: (remainingStock > 0 && quantity < remainingStock)
                                   ? () => setState(() => quantity++)
                                   : null,
@@ -343,53 +402,50 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                           ],
                         ),
                       ),
-                      const SizedBox(width: 16),
-                      
-                      // Add to Cart Button
+                      const SizedBox(width: 12),
+
+                      // CTA principal en negro tinta
                       Expanded(
                         child: ElevatedButton(
                           onPressed: (selectedVariant == null || remainingStock <= 0)
                               ? null
                               : () async {
-                                  final error = await ref.read(cartProvider.notifier).addProduct(selectedVariant!.id, quantity);
+                                  final error = await ref
+                                      .read(cartProvider.notifier)
+                                      .addProduct(selectedVariant!.id, quantity);
                                   if (!context.mounted) return;
                                   if (error != null) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text(error),
                                         backgroundColor: AppColors.error,
-                                        behavior: SnackBarBehavior.floating,
                                       ),
                                     );
                                   } else {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
-                                        content: Text('${quantity}x ${product.name} agregado al carrito'),
-                                        backgroundColor: AppColors.success,
-                                        behavior: SnackBarBehavior.floating,
+                                        content: Text('${quantity}x ${product.name} agregado a tu bolsa'),
+                                        backgroundColor: AppColors.dark,
                                       ),
                                     );
-                                    setState(() {
-                                      quantity = 1;
-                                    });
+                                    setState(() => quantity = 1);
                                   }
                                 },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.dark,
-                            disabledBackgroundColor: AppColors.grayLight.withOpacity(0.4),
+                            disabledBackgroundColor: AppColors.border,
                             padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                           child: Text(
                             variantStock <= 0
                                 ? 'Agotado'
                                 : (remainingStock <= 0
                                     ? 'En carrito (Máx $variantStock)'
-                                    : 'Añadir'),
-                            style: AppTypography.bodyLarge.copyWith(
-                              color: AppColors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
+                                    : 'Añadir a la bolsa'),
+                            style: AppTypography.button,
                           ),
                         ),
                       ),
@@ -403,45 +459,54 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
       ),
     );
   }
+}
 
-  Widget _buildMobileTrustCard({required IconData icon, required String title, required String subtitle}) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        border: Border.all(color: AppColors.grayLight.withOpacity(0.3)),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: AppColors.primaryLight.withOpacity(0.2), shape: BoxShape.circle),
-            child: Icon(icon, size: 24, color: AppColors.primaryDark),
+class _VintageSpecRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _VintageSpecRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 15, color: AppColors.gray),
+        const SizedBox(width: 10),
+        Text('$label:', style: AppTypography.bodySmall),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            value,
+            style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w500),
+            textAlign: TextAlign.right,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.bold, color: AppColors.dark)),
-                const SizedBox(height: 4),
-                Text(subtitle, style: AppTypography.bodySmall.copyWith(color: AppColors.gray, height: 1.2)),
-              ],
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
+}
 
-  Widget _buildSmallTrustIcon(IconData icon, String label) {
+class _MeasurementRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _MeasurementRow({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
     return Row(
-      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Icon(icon, size: 16, color: AppColors.gray),
-        const SizedBox(width: 6),
-        Text(label, style: AppTypography.bodySmall.copyWith(color: AppColors.gray)),
+        Text(label, style: AppTypography.bodySmall),
+        Text(value, style: AppTypography.titleSmall),
       ],
     );
   }

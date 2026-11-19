@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -75,7 +76,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     maxLength: 100,
                     decoration: const InputDecoration(
                       labelText: 'Correo Electrónico',
-                      prefixIcon: Icon(Icons.email_outlined),
+                      prefixIcon: Icon(CupertinoIcons.mail, size: 18),
                       counterText: '',
                     ),
                     validator: (value) {
@@ -99,11 +100,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     maxLength: 64,
                     decoration: InputDecoration(
                       labelText: 'Contraseña',
-                      prefixIcon: const Icon(Icons.lock_outline),
+                      prefixIcon: const Icon(CupertinoIcons.lock, size: 18),
                       counterText: '',
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                          _obscurePassword ? CupertinoIcons.eye : CupertinoIcons.eye_slash,
+                          size: 18,
                         ),
                         onPressed: () {
                           setState(() {

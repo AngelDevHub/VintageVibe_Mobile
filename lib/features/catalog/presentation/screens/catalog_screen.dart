@@ -1,10 +1,12 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../providers/catalog_provider.dart';
-import '../../../cart/presentation/providers/cart_provider.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/config/theme/app_typography.dart';
+import '../../../../shared/widgets/ios_pressable.dart';
+import '../../data/models/product.dart';
+import '../providers/catalog_provider.dart';
 
 class CatalogScreen extends ConsumerWidget {
   const CatalogScreen({super.key});
@@ -16,21 +18,29 @@ class CatalogScreen extends ConsumerWidget {
     final isLandscape = mediaQuery.orientation == Orientation.landscape;
     final screenWidth = mediaQuery.size.width;
 
-    // Adaptar dinámicamente columnas y aspect ratio para prevenir desbordamientos RenderFlex
     final int crossAxisCount = screenWidth > 900
         ? 4
         : (isLandscape || screenWidth > 600 ? 3 : 2);
-    final double childAspectRatio = isLandscape ? 0.72 : 0.65;
 
     return Scaffold(
       backgroundColor: AppColors.light,
       appBar: AppBar(
         title: const Text('Explorar'),
         centerTitle: true,
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppColors.light,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(CupertinoIcons.refresh, size: 20, color: AppColors.dark),
+            onPressed: () => ref.invalidate(productsProvider),
+            tooltip: 'Actualizar catálogo',
+          ),
+          const SizedBox(width: 4),
+        ],
       ),
       body: RefreshIndicator(
+        color: AppColors.dark,
+        backgroundColor: AppColors.white,
         onRefresh: () async {
           ref.invalidate(productsProvider);
           await ref.read(productsProvider.future);
@@ -40,184 +50,49 @@ class CatalogScreen extends ConsumerWidget {
             if (products.isEmpty) {
               return ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                children: const [
-                  SizedBox(height: 120),
-                  Center(child: Text('No hay prendas disponibles')),
+                children: [
+                  const SizedBox(height: 120),
+                  const Icon(CupertinoIcons.tag, size: 36, color: AppColors.gray),
+                  const SizedBox(height: 12),
+                  Center(
+                    child: Text(
+                      'No hay prendas disponibles',
+                      style: AppTypography.bodyMedium.copyWith(color: AppColors.gray),
+                    ),
+                  ),
                 ],
               );
             }
+
             return GridView.builder(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: crossAxisCount,
-                childAspectRatio: childAspectRatio,
+                childAspectRatio: 0.54,
                 crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
+                mainAxisSpacing: 24,
               ),
               itemCount: products.length,
               itemBuilder: (context, index) {
-                final product = products[index];
-                final hasImage = product.images.isNotEmpty;
-                
-                return GestureDetector(
-                  onTap: () => context.push('/product/${product.id}'),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.grayLight.withOpacity(0.5), 
-                          blurRadius: 10, 
-                          offset: const Offset(0, 4)
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Image
-                        Expanded(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                              image: hasImage 
-                                  ? DecorationImage(image: NetworkImage(product.images.first), fit: BoxFit.cover)
-                                  : null,
-                              color: AppColors.grayLight,
-                            ),
-                            child: !hasImage ? const Center(child: Icon(Icons.image_not_supported, color: AppColors.gray)) : null,
-                          ),
-                        ),
-                        // Details
-                        Padding(
-                          padding: const EdgeInsets.all(12.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                product.name,
-                                style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.bold),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                product.brandName ?? 'Vintage',
-                                style: AppTypography.bodySmall.copyWith(color: AppColors.gray),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      '\$${product.price.toStringAsFixed(2)}',
-                                      style: AppTypography.bodyLarge.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  InkWell(
-                                    onTap: () async {
-                                      final defaultVariant = product.variants.isNotEmpty 
-                                          ? product.variants.first 
-                                          : null;
-                                      if (defaultVariant == null) return;
-
-                                      if (defaultVariant.stock <= 0) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(
-                                            content: Text('Esta prenda está agotada'),
-                                            behavior: SnackBarBehavior.floating,
-                                            backgroundColor: AppColors.error,
-                                            duration: Duration(seconds: 2),
-                                          ),
-                                        );
-                                        return;
-                                      }
-
-                                      final currentCart = ref.read(cartProvider).asData?.value;
-                                      int inCartQty = 0;
-                                      if (currentCart != null) {
-                                        for (final item in currentCart.items) {
-                                          if (item.variantId == defaultVariant.id) {
-                                            inCartQty = item.quantity;
-                                            break;
-                                          }
-                                        }
-                                      }
-
-                                      if (inCartQty >= defaultVariant.stock) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(
-                                            content: Text('Ya tienes el máximo disponible (${defaultVariant.stock}) en tu carrito'),
-                                            behavior: SnackBarBehavior.floating,
-                                            backgroundColor: AppColors.accent,
-                                            duration: const Duration(seconds: 2),
-                                          ),
-                                        );
-                                        return;
-                                      }
-
-                                      final error = await ref.read(cartProvider.notifier).addProduct(defaultVariant.id, 1);
-                                      if (!context.mounted) return;
-                                      if (error != null) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(
-                                            content: Text(error),
-                                            behavior: SnackBarBehavior.floating,
-                                            backgroundColor: AppColors.error,
-                                            duration: const Duration(seconds: 2),
-                                          ),
-                                        );
-                                      } else {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(
-                                            content: Text('${product.name} agregado al carrito'),
-                                            behavior: SnackBarBehavior.floating,
-                                            backgroundColor: AppColors.success,
-                                            duration: const Duration(seconds: 2),
-                                          ),
-                                        );
-                                      }
-                                    },
-                                    child: Container(
-                                      padding: const EdgeInsets.all(6),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.primaryLight.withOpacity(0.3),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: const Icon(Icons.add_shopping_cart, size: 20, color: AppColors.primaryDark),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
+                return _EditorialProductCard(product: products[index]);
               },
             );
           },
-          loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+          loading: () => const Center(
+            child: CupertinoActivityIndicator(radius: 12, color: AppColors.dark),
+          ),
           error: (error, stack) => ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             children: [
               const SizedBox(height: 120),
               Center(
                 child: Padding(
-                  padding: const EdgeInsets.all(24.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Column(
                     children: [
-                      const Icon(Icons.wifi_off_rounded, size: 48, color: AppColors.gray),
-                      const SizedBox(height: 12),
+                      const Icon(CupertinoIcons.wifi_slash, size: 36, color: AppColors.gray),
+                      const SizedBox(height: 16),
                       Text(
                         'No se pudieron cargar las prendas',
                         style: AppTypography.headlineSmall,
@@ -226,18 +101,14 @@ class CatalogScreen extends ConsumerWidget {
                       const SizedBox(height: 8),
                       Text(
                         'Verifica tu conexión a internet o el estado del servidor e inténtalo de nuevo.',
-                        style: AppTypography.bodySmall.copyWith(color: AppColors.gray),
+                        style: AppTypography.bodySmall,
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 24),
                       ElevatedButton.icon(
                         onPressed: () => ref.invalidate(productsProvider),
-                        icon: const Icon(Icons.refresh),
+                        icon: const Icon(CupertinoIcons.refresh, size: 16),
                         label: const Text('Reintentar'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: AppColors.white,
-                        ),
                       ),
                     ],
                   ),
@@ -246,6 +117,122 @@ class CatalogScreen extends ConsumerWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _EditorialProductCard extends StatelessWidget {
+  final Product product;
+
+  const _EditorialProductCard({required this.product});
+
+  String _buildMetadata() {
+    final parts = <String>[];
+    if (product.variants.isNotEmpty) {
+      final size = product.variants.first.size.trim();
+      if (size.isNotEmpty && size != 'N/A') {
+        parts.add('Talla $size');
+      }
+    }
+    if (product.brandName != null && product.brandName!.trim().isNotEmpty) {
+      parts.add(product.brandName!.trim());
+    } else if (product.conditionName != null && product.conditionName!.trim().isNotEmpty) {
+      parts.add(product.conditionName!.trim());
+    }
+    return parts.isEmpty ? 'Vintage seleccionado' : parts.join(' · ');
+  }
+
+  String? _availabilityLabel() {
+    if (product.variants.isEmpty) return null;
+    final totalStock = product.variants.fold<int>(0, (sum, v) => sum + v.stock);
+    if (totalStock <= 0) return 'Agotado';
+    if (totalStock == 1) return 'Pieza única';
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasImage = product.images.isNotEmpty;
+    final availability = _availabilityLabel();
+
+    return IosPressable(
+      onTap: () => context.push('/product/${product.id}'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1. Fotografía limpia en proporción vertical 3:4 sin botones ni etiquetas encima
+          AspectRatio(
+            aspectRatio: 3 / 4,
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppColors.surfaceSoft,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.border, width: 0.5),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: hasImage
+                  ? Image.network(
+                      product.images.first,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const Center(
+                        child: Icon(CupertinoIcons.photo, size: 28, color: AppColors.gray),
+                      ),
+                    )
+                  : const Center(
+                      child: Icon(CupertinoIcons.photo, size: 28, color: AppColors.gray),
+                    ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          // 2. Título de la prenda (máx. 2 líneas)
+          Text(
+            product.name,
+            style: AppTypography.titleSmall.copyWith(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: AppColors.dark,
+              height: 1.25,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 4),
+          // 3. Metadato corto (Talla · Marca/Condición)
+          Text(
+            _buildMetadata(),
+            style: AppTypography.labelMedium.copyWith(
+              fontSize: 12,
+              color: AppColors.gray,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 6),
+          // 4. Precio en tipografía firme + indicador discreto de disponibilidad
+          Row(
+            children: [
+              Text(
+                '\$${product.price.toStringAsFixed(2)}',
+                style: AppTypography.priceSmall,
+              ),
+              if (availability != null) ...[
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    availability,
+                    style: AppTypography.labelSmall.copyWith(
+                      color: availability == 'Agotado' ? AppColors.error : AppColors.secondary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
       ),
     );
   }

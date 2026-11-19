@@ -1,6 +1,10 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/router/app_router.dart';
+import '../../core/config/theme/app_colors.dart';
+import '../../core/config/theme/app_typography.dart';
+import '../../core/router/app_router.dart';
+import 'ios_pressable.dart';
 
 class VVShell extends StatelessWidget {
   final Widget child;
@@ -18,47 +22,102 @@ class VVShell extends StatelessWidget {
     if (location.startsWith('/profile')) currentIndex = 3;
 
     return Scaffold(
+      backgroundColor: AppColors.light,
       body: child,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: currentIndex,
-        onDestinationSelected: (index) {
-          switch (index) {
-            case 0:
-              context.goNamed(AppRoutes.home);
-              break;
-            case 1:
-              context.goNamed(AppRoutes.publish);
-              break;
-            case 2:
-              context.goNamed(AppRoutes.cart);
-              break;
-            case 3:
-              context.goNamed(AppRoutes.profile);
-              break;
-          }
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.explore_outlined),
-            selectedIcon: Icon(Icons.explore),
-            label: 'Explorar',
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          color: AppColors.light,
+          border: Border(
+            top: BorderSide(color: AppColors.border, width: 0.5),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.add_circle_outline),
-            selectedIcon: Icon(Icons.add_circle),
-            label: 'Publicar',
+        ),
+        child: SafeArea(
+          top: false,
+          child: SizedBox(
+            height: 60,
+            child: Row(
+              children: [
+                _EditorialNavItem(
+                  icon: CupertinoIcons.compass,
+                  activeIcon: CupertinoIcons.compass_fill,
+                  label: 'Explorar',
+                  isSelected: currentIndex == 0,
+                  onTap: () => context.goNamed(AppRoutes.home),
+                ),
+                _EditorialNavItem(
+                  icon: CupertinoIcons.plus_square,
+                  activeIcon: CupertinoIcons.plus_square_fill,
+                  label: 'Publicar',
+                  isSelected: currentIndex == 1,
+                  onTap: () => context.goNamed(AppRoutes.publish),
+                ),
+                _EditorialNavItem(
+                  icon: CupertinoIcons.bag,
+                  activeIcon: CupertinoIcons.bag_fill,
+                  label: 'Carrito',
+                  isSelected: currentIndex == 2,
+                  onTap: () => context.goNamed(AppRoutes.cart),
+                ),
+                _EditorialNavItem(
+                  icon: CupertinoIcons.person,
+                  activeIcon: CupertinoIcons.person_fill,
+                  label: 'Perfil',
+                  isSelected: currentIndex == 3,
+                  onTap: () => context.goNamed(AppRoutes.profile),
+                ),
+              ],
+            ),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.shopping_bag_outlined),
-            selectedIcon: Icon(Icons.shopping_bag),
-            label: 'Carrito',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Perfil',
-          ),
-        ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EditorialNavItem extends StatelessWidget {
+  final IconData icon;
+  final IconData activeIcon;
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _EditorialNavItem({
+    required this.icon,
+    required this.activeIcon,
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isSelected ? AppColors.dark : AppColors.gray;
+
+    return Expanded(
+      child: IosPressable(
+        onTap: onTap,
+        pressedScale: 0.94,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              isSelected ? activeIcon : icon,
+              size: 22,
+              color: color,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: AppTypography.labelSmall.copyWith(
+                color: color,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                fontSize: 11,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
       ),
     );
   }
