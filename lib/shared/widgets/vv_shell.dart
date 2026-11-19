@@ -31,11 +31,11 @@ class VVShell extends StatelessWidget {
           // Contenido a pantalla completa para que pase detrás del cristal translúcido
           child,
 
-          // Barra de navegación flotante estilo iOS Liquid Glass pegada casi al borde inferior
+          // Barra de navegación flotante estilo iOS Liquid Glass pegada al borde inferior
           Positioned(
-            left: 14,
-            right: 14,
-            bottom: 6,
+            left: 12,
+            right: 12,
+            bottom: 2,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(32),
               child: BackdropFilter(

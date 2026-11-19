@@ -65,6 +65,15 @@ class PublishRepository {
     return Product.fromJson(response.data);
   }
 
+  Future<Product> updateListing(int id, Map<String, dynamic> productData) async {
+    final response = await _dio.put('${ApiEndpoints.c2cListings}/$id', data: productData);
+    return Product.fromJson(response.data);
+  }
+
+  Future<void> deleteListing(int id) async {
+    await _dio.delete('${ApiEndpoints.c2cListings}/$id');
+  }
+
   Future<List<Product>> getMyListings() async {
     final response = await _dio.get(ApiEndpoints.c2cMyListings);
     final data = response.data['content'] as List;
