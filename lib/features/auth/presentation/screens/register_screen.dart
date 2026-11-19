@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/auth_provider.dart';
@@ -120,6 +121,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   TextFormField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
+                    onChanged: (_) => setState(() {}),
                     decoration: InputDecoration(
                       labelText: 'Contraseña',
                       errorMaxLines: 2,
@@ -137,17 +139,22 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) return 'Ingresa tu contraseña';
-                      if (value.length < 8) return 'Mínimo 8 caracteres';
-                      final hasUpper = value.contains(RegExp(r'[A-Z]'));
-                      final hasLower = value.contains(RegExp(r'[a-z]'));
-                      final hasDigits = value.contains(RegExp(r'[0-9]'));
-                      final hasSpecial = value.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>_\-]'));
-                      if (!hasUpper || !hasLower || !hasDigits || !hasSpecial) {
-                        return 'Debe incluir mayúscula, minúscula, número y un carácter especial';
+                      final pass = value;
+                      final hasMinLength = pass.length >= 8;
+                      final hasUpper = pass.contains(RegExp(r'[A-Z]'));
+                      final hasLower = pass.contains(RegExp(r'[a-z]'));
+                      final hasDigits = pass.contains(RegExp(r'[0-9]'));
+                      final hasSpecial = pass.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>_\-]'));
+                      if (!hasMinLength || !hasUpper || !hasLower || !hasDigits || !hasSpecial) {
+                        return 'Cumple con todos los requisitos marcados con palomita';
                       }
                       return null;
                     },
                   ),
+                  const SizedBox(height: 12),
+
+                  // Lista dinámica de requisitos con palomitas en tiempo real
+                  _buildPasswordChecklist(_passwordController.text),
                   const SizedBox(height: 24),
                   ElevatedButton(
                     onPressed: authState.isLoading ? null : _submit,
@@ -168,6 +175,97 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildPasswordChecklist(String password) {
+    final hasMinLength = password.length >= 8;
+    final hasUpper = password.contains(RegExp(r'[A-Z]'));
+    final hasLower = password.contains(RegExp(r'[a-z]'));
+    final hasDigits = password.contains(RegExp(r'[0-9]'));
+    final hasSpecial = password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>_\-]'));
+
+    final int metCount = [hasMinLength, hasUpper, hasLower, hasDigits, hasSpecial]
+        .where((m) => m)
+        .length;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceSoft,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border, width: 0.8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'Seguridad de la contraseña',
+                style: AppTypography.bodySmall.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.dark,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                '$metCount de 5 cumplidos',
+                style: AppTypography.caption.copyWith(
+                  color: metCount == 5 ? const Color(0xFF2E7D32) : AppColors.gray,
+                  fontWeight: metCount == 5 ? FontWeight.w700 : FontWeight.normal,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: metCount / 5.0,
+              minHeight: 4,
+              backgroundColor: AppColors.border,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                metCount == 5
+                    ? const Color(0xFF2E7D32)
+                    : (metCount >= 3 ? Colors.amber.shade700 : AppColors.error),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          _buildRequirementRow('Mínimo 8 caracteres', hasMinLength),
+          const SizedBox(height: 4),
+          _buildRequirementRow('Una letra mayúscula (A-Z)', hasUpper),
+          const SizedBox(height: 4),
+          _buildRequirementRow('Una letra minúscula (a-z)', hasLower),
+          const SizedBox(height: 4),
+          _buildRequirementRow('Al menos un número (0-9)', hasDigits),
+          const SizedBox(height: 4),
+          _buildRequirementRow('Un carácter especial (!@#\$%^&*)', hasSpecial),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRequirementRow(String text, bool isMet) {
+    return Row(
+      children: [
+        Icon(
+          isMet ? CupertinoIcons.checkmark_circle_fill : CupertinoIcons.circle,
+          size: 16,
+          color: isMet ? const Color(0xFF2E7D32) : AppColors.gray.withValues(alpha: 0.45),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: AppTypography.caption.copyWith(
+              color: isMet ? AppColors.dark : AppColors.gray,
+              fontWeight: isMet ? FontWeight.w600 : FontWeight.normal,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

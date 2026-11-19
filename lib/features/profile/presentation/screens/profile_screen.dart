@@ -26,7 +26,10 @@ class ProfileScreen extends ConsumerWidget {
         elevation: 0,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        padding: const EdgeInsets.fromLTRB(24.0, 24.0, 24.0, 130.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [

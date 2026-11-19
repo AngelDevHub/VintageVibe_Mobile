@@ -6,6 +6,7 @@ import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/config/theme/app_typography.dart';
 import '../../../../shared/widgets/ios_pressable.dart';
 import '../../data/models/product.dart';
+import '../../publish/presentation/providers/publish_provider.dart';
 import '../providers/catalog_provider.dart';
 
 class CatalogScreen extends ConsumerStatefulWidget {
@@ -18,6 +19,8 @@ class CatalogScreen extends ConsumerStatefulWidget {
 class _CatalogScreenState extends ConsumerState<CatalogScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  String? _selectedCategory;
+  String? _selectedBrand;
 
   @override
   void dispose() {
@@ -26,16 +29,33 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
   }
 
   List<Product> _filterProducts(List<Product> products) {
+    var result = products;
+
+    if (_selectedCategory != null) {
+      result = result.where((p) =>
+        (p.categoryName ?? '').trim().toLowerCase() == _selectedCategory!.trim().toLowerCase()
+      ).toList();
+    }
+
+    if (_selectedBrand != null) {
+      result = result.where((p) =>
+        (p.brandName ?? '').trim().toLowerCase() == _selectedBrand!.trim().toLowerCase()
+      ).toList();
+    }
+
     final q = _searchQuery.trim().toLowerCase();
-    if (q.isEmpty) return products;
-    return products.where((p) {
-      final nameMatch = p.name.toLowerCase().contains(q);
-      final brandMatch = (p.brandName ?? '').toLowerCase().contains(q);
-      final categoryMatch = (p.categoryName ?? '').toLowerCase().contains(q);
-      final conditionMatch = (p.conditionName ?? '').toLowerCase().contains(q);
-      final sizeMatch = p.variants.any((v) => v.size.toLowerCase().contains(q));
-      return nameMatch || brandMatch || categoryMatch || conditionMatch || sizeMatch;
-    }).toList();
+    if (q.isNotEmpty) {
+      result = result.where((p) {
+        final nameMatch = p.name.toLowerCase().contains(q);
+        final brandMatch = (p.brandName ?? '').toLowerCase().contains(q);
+        final categoryMatch = (p.categoryName ?? '').toLowerCase().contains(q);
+        final conditionMatch = (p.conditionName ?? '').toLowerCase().contains(q);
+        final sizeMatch = p.variants.any((v) => v.size.toLowerCase().contains(q));
+        return nameMatch || brandMatch || categoryMatch || conditionMatch || sizeMatch;
+      }).toList();
+    }
+
+    return result;
   }
 
   @override
@@ -108,6 +128,66 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
               ),
             ),
           ),
+
+          // Carrusel de Categorías estilo Shein
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 2, 16, 4),
+            child: Row(
+              children: [
+                Text(
+                  'Categorías',
+                  style: AppTypography.labelSmall.copyWith(
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
+                    color: AppColors.gray,
+                    fontSize: 11,
+                  ),
+                ),
+                const Spacer(),
+                if (_selectedCategory != null || _selectedBrand != null || _searchQuery.isNotEmpty)
+                  IosPressable(
+                    onTap: () {
+                      setState(() {
+                        _selectedCategory = null;
+                        _selectedBrand = null;
+                        _searchQuery = '';
+                        _searchController.clear();
+                      });
+                    },
+                    child: Text(
+                      'Limpiar filtros',
+                      style: AppTypography.caption.copyWith(
+                        color: AppColors.error,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          _buildCategoryCarousel(ref, productsAsync.value ?? const []),
+          const SizedBox(height: 6),
+
+          // Carrusel de Marcas estilo Shein
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 2, 16, 4),
+            child: Row(
+              children: [
+                Text(
+                  'Marcas',
+                  style: AppTypography.labelSmall.copyWith(
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
+                    color: AppColors.gray,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          _buildBrandCarousel(ref, productsAsync.value ?? const []),
+          const SizedBox(height: 8),
 
           // Lista / Grid de productos
           Expanded(
@@ -211,6 +291,136 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryCarousel(WidgetRef ref, List<Product> products) {
+    final categoriesAsync = ref.watch(categoriesProvider);
+    final categorySet = <String>{};
+
+    categoriesAsync.whenData((list) {
+      for (final item in list) {
+        if (item.name.trim().isNotEmpty) categorySet.add(item.name.trim());
+      }
+    });
+
+    for (final p in products) {
+      if (p.categoryName != null && p.categoryName!.trim().isNotEmpty) {
+        categorySet.add(p.categoryName!.trim());
+      }
+    }
+
+    final categories = ['Todas', ...categorySet];
+
+    return SizedBox(
+      height: 32,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: categories.length,
+        itemBuilder: (context, index) {
+          final cat = categories[index];
+          final isSelected = (index == 0 && _selectedCategory == null) ||
+              (_selectedCategory?.toLowerCase() == cat.toLowerCase());
+
+          return _buildFilterChip(
+            label: cat,
+            isSelected: isSelected,
+            onTap: () {
+              setState(() {
+                if (index == 0) {
+                  _selectedCategory = null;
+                } else {
+                  _selectedCategory = (_selectedCategory == cat) ? null : cat;
+                }
+              });
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildBrandCarousel(WidgetRef ref, List<Product> products) {
+    final brandsAsync = ref.watch(brandsProvider);
+    final brandSet = <String>{};
+
+    brandsAsync.whenData((list) {
+      for (final item in list) {
+        if (item.name.trim().isNotEmpty) brandSet.add(item.name.trim());
+      }
+    });
+
+    for (final p in products) {
+      if (p.brandName != null && p.brandName!.trim().isNotEmpty) {
+        brandSet.add(p.brandName!.trim());
+      }
+    }
+
+    final brands = ['Todas', ...brandSet];
+
+    return SizedBox(
+      height: 30,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: brands.length,
+        itemBuilder: (context, index) {
+          final brand = brands[index];
+          final isSelected = (index == 0 && _selectedBrand == null) ||
+              (_selectedBrand?.toLowerCase() == brand.toLowerCase());
+
+          return _buildFilterChip(
+            label: brand,
+            isSelected: isSelected,
+            onTap: () {
+              setState(() {
+                if (index == 0) {
+                  _selectedBrand = null;
+                } else {
+                  _selectedBrand = (_selectedBrand == brand) ? null : brand;
+                }
+              });
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildFilterChip({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return IosPressable(
+      onTap: onTap,
+      pressedScale: 0.94,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.dark : AppColors.surfaceSoft,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? AppColors.dark : AppColors.border,
+            width: 0.7,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: AppTypography.bodySmall.copyWith(
+              color: isSelected ? AppColors.white : AppColors.dark,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+              fontSize: 12,
+            ),
+          ),
+        ),
       ),
     );
   }
