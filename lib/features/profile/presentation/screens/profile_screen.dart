@@ -20,7 +20,7 @@ class ProfileScreen extends ConsumerWidget {
       backgroundColor: AppColors.light,
       appBar: AppBar(
         title: const Text('Mi Perfil'),
-        centerTitle: true,
+        centerTitle: false,
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),

@@ -21,6 +21,9 @@ class VVShell extends StatelessWidget {
     if (location.startsWith('/cart')) currentIndex = 2;
     if (location.startsWith('/profile')) currentIndex = 3;
 
+    final bottomInset = MediaQuery.of(context).padding.bottom;
+    final bottomPadding = bottomInset > 16 ? bottomInset - 14 : (bottomInset > 0 ? bottomInset : 8.0);
+
     return Scaffold(
       backgroundColor: AppColors.light,
       body: child,
@@ -31,42 +34,40 @@ class VVShell extends StatelessWidget {
             top: BorderSide(color: AppColors.border, width: 0.5),
           ),
         ),
-        child: SafeArea(
-          top: false,
-          child: SizedBox(
-            height: 60,
-            child: Row(
-              children: [
-                _EditorialNavItem(
-                  icon: CupertinoIcons.compass,
-                  activeIcon: CupertinoIcons.compass_fill,
-                  label: 'Explorar',
-                  isSelected: currentIndex == 0,
-                  onTap: () => context.goNamed(AppRoutes.home),
-                ),
-                _EditorialNavItem(
-                  icon: CupertinoIcons.plus_square,
-                  activeIcon: CupertinoIcons.plus_square_fill,
-                  label: 'Publicar',
-                  isSelected: currentIndex == 1,
-                  onTap: () => context.goNamed(AppRoutes.publish),
-                ),
-                _EditorialNavItem(
-                  icon: CupertinoIcons.bag,
-                  activeIcon: CupertinoIcons.bag_fill,
-                  label: 'Carrito',
-                  isSelected: currentIndex == 2,
-                  onTap: () => context.goNamed(AppRoutes.cart),
-                ),
-                _EditorialNavItem(
-                  icon: CupertinoIcons.person,
-                  activeIcon: CupertinoIcons.person_fill,
-                  label: 'Perfil',
-                  isSelected: currentIndex == 3,
-                  onTap: () => context.goNamed(AppRoutes.profile),
-                ),
-              ],
-            ),
+        padding: EdgeInsets.only(top: 8, bottom: bottomPadding),
+        child: SizedBox(
+          height: 44,
+          child: Row(
+            children: [
+              _EditorialNavItem(
+                icon: CupertinoIcons.compass,
+                activeIcon: CupertinoIcons.compass_fill,
+                label: 'Explorar',
+                isSelected: currentIndex == 0,
+                onTap: () => context.goNamed(AppRoutes.home),
+              ),
+              _EditorialNavItem(
+                icon: CupertinoIcons.plus_square,
+                activeIcon: CupertinoIcons.plus_square_fill,
+                label: 'Publicar',
+                isSelected: currentIndex == 1,
+                onTap: () => context.goNamed(AppRoutes.publish),
+              ),
+              _EditorialNavItem(
+                icon: CupertinoIcons.bag,
+                activeIcon: CupertinoIcons.bag_fill,
+                label: 'Carrito',
+                isSelected: currentIndex == 2,
+                onTap: () => context.goNamed(AppRoutes.cart),
+              ),
+              _EditorialNavItem(
+                icon: CupertinoIcons.person,
+                activeIcon: CupertinoIcons.person_fill,
+                label: 'Perfil',
+                isSelected: currentIndex == 3,
+                onTap: () => context.goNamed(AppRoutes.profile),
+              ),
+            ],
           ),
         ),
       ),

@@ -26,7 +26,7 @@ class CatalogScreen extends ConsumerWidget {
       backgroundColor: AppColors.light,
       appBar: AppBar(
         title: const Text('Explorar'),
-        centerTitle: true,
+        centerTitle: false,
         backgroundColor: AppColors.light,
         elevation: 0,
         actions: [

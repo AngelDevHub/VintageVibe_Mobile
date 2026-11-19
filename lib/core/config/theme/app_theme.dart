@@ -42,8 +42,9 @@ class AppTheme {
         backgroundColor: AppColors.light,
         foregroundColor: AppColors.dark,
         surfaceTintColor: Colors.transparent,
-        centerTitle: true,
-        titleTextStyle: AppTypography.headlineMedium,
+        centerTitle: false,
+        titleSpacing: 16,
+        titleTextStyle: AppTypography.headlineLarge,
         iconTheme: const IconThemeData(color: AppColors.dark, size: 20),
         shape: const Border(
           bottom: BorderSide(color: AppColors.border, width: 0.5),

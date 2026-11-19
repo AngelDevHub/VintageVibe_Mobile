@@ -15,7 +15,7 @@ class OrdersScreen extends ConsumerWidget {
       backgroundColor: AppColors.light,
       appBar: AppBar(
         title: const Text('Mis Pedidos'),
-        centerTitle: true,
+        centerTitle: false,
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),

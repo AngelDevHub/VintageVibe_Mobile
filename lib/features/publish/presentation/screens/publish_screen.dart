@@ -203,7 +203,7 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
       backgroundColor: AppColors.light,
       appBar: AppBar(
         title: const Text('Publicar Prenda'),
-        centerTitle: true,
+        centerTitle: false,
         elevation: 0,
         backgroundColor: Colors.transparent,
       ),

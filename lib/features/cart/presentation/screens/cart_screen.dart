@@ -19,7 +19,7 @@ class CartScreen extends ConsumerWidget {
       backgroundColor: AppColors.light,
       appBar: AppBar(
         title: const Text('Mi Carrito'),
-        centerTitle: true,
+        centerTitle: false,
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
