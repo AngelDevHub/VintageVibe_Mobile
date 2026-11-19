@@ -17,6 +17,7 @@ import '../../features/orders/presentation/screens/orders_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/profile/presentation/screens/favorites_screen.dart';
 import '../../features/profile/presentation/screens/settings_screen.dart';
+import '../../features/wearable/presentation/screens/watch_companion_screen.dart';
 import '../../shared/widgets/vv_shell.dart';
 
 // Route names
@@ -34,6 +35,7 @@ class AppRoutes {
   static const profile = 'profile';
   static const favorites = 'favorites';
   static const settings = 'settings';
+  static const watch = 'watch';
 }
 
 class RouterNotifier extends ChangeNotifier {
@@ -58,6 +60,9 @@ class RouterNotifier extends ChangeNotifier {
     final isAuthenticated = authState.isAuthenticated;
     final isInitial = authState.status == AuthStatus.initial;
     final currentPath = state.uri.path;
+
+    // Permitir acceso directo al Smartwatch Companion (/watch) sin bloqueo de sesión
+    if (currentPath == '/watch') return null;
 
     // While checking session, stay on splash
     if (isInitial) {
@@ -171,6 +176,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/settings',
         name: AppRoutes.settings,
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: '/watch',
+        name: AppRoutes.watch,
+        builder: (context, state) => const WatchCompanionScreen(),
       ),
     ],
   );

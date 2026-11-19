@@ -73,8 +73,8 @@ class ProfileScreen extends ConsumerWidget {
             ),
             _buildProfileOption(
               icon: CupertinoIcons.bell,
-              title: 'Práctica 2: Probar Alerta Wearable',
-              onTap: () => _showWearableDemoSheet(context, ref),
+              title: 'Wear OS Companion (Reloj en vivo)',
+              onTap: () => context.push('/watch'),
             ),
             _buildProfileOption(
               icon: CupertinoIcons.settings,

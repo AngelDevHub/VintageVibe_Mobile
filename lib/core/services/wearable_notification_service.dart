@@ -32,6 +32,11 @@ class WearableNotificationService {
 
   static Timer? _pollingTimer;
   static String? _fcmToken;
+  static final StreamController<Map<String, dynamic>> _alertStreamController =
+      StreamController<Map<String, dynamic>>.broadcast();
+
+  /// Stream en tiempo real para que la vista Smartwatch Companion (/watch) reciba alertas al instante.
+  static Stream<Map<String, dynamic>> get alertStream => _alertStreamController.stream;
 
   /// Canal de máxima importancia sincronizado con el Backend Spring Boot
   static const AndroidNotificationChannel _wearableChannel =
@@ -111,6 +116,14 @@ class WearableNotificationService {
     required String title,
     required String body,
   }) async {
+    // Emitir siempre al stream en memoria para la vista Smartwatch Companion (/watch)
+    _alertStreamController.add({
+      'id': id,
+      'title': title,
+      'body': body,
+      'timestamp': DateTime.now().toIso8601String(),
+    });
+
     if (kIsWeb) {
       debugPrint('Notificación Web/PWA recibida: $title - $body');
       return;
@@ -161,11 +174,7 @@ class WearableNotificationService {
           ? data['body'].toString()
           : "Tu artículo '$garmentTitle' se ha vendido por \$${salePrice.toStringAsFixed(2)} MXN. Prepara el envío.";
 
-      // Consumir la cola para evitar duplicado en el siguiente ciclo de polling
-      try {
-        await dio.get(ApiEndpoints.wearablePoll);
-      } catch (_) {}
-
+      // Emitir alerta local (el backend conserva el evento en cola para otro dispositivo en /watch)
       await showLocalWearableAlert(
         id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
         title: title,
@@ -182,27 +191,34 @@ class WearableNotificationService {
     }
   }
 
-  /// Inicia el escucha de eventos de venta del Backend (cuando se compra desde la Web Angular)
+  /// Consulta una vez la cola de alertas del backend (usado por polling y por /watch).
+  static Future<int> pollBackendOnce(Dio dio) async {
+    try {
+      final response = await dio.get(ApiEndpoints.wearablePoll);
+      if (response.data is List) {
+        final alerts = response.data as List;
+        for (final alert in alerts) {
+          if (alert is Map) {
+            await showLocalWearableAlert(
+              id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+              title: alert['title']?.toString() ?? 'Prenda Vintage Vendida',
+              body: alert['body']?.toString() ?? 'Tu artículo vintage ha sido vendido.',
+            );
+          }
+        }
+        return alerts.length;
+      }
+    } catch (_) {
+      // Silencioso durante polling en segundo plano
+    }
+    return 0;
+  }
+
+  /// Inicia el escucha de eventos de venta del Backend (cuando se compra desde la Web Angular o Móvil)
   static void startBackendEventPolling(Dio dio) {
     _pollingTimer?.cancel();
     _pollingTimer = Timer.periodic(const Duration(seconds: 8), (_) async {
-      try {
-        final response = await dio.get(ApiEndpoints.wearablePoll);
-        if (response.data is List) {
-          final alerts = response.data as List;
-          for (final alert in alerts) {
-            if (alert is Map) {
-              await showLocalWearableAlert(
-                id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
-                title: alert['title']?.toString() ?? '¡Prenda Vintage Vendida! 🧥',
-                body: alert['body']?.toString() ?? 'Tu artículo vintage ha sido vendido.',
-              );
-            }
-          }
-        }
-      } catch (_) {
-        // Silencioso durante polling en segundo plano
-      }
+      await pollBackendOnce(dio);
     });
   }
 }
