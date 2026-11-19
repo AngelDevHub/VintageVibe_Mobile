@@ -12,7 +12,10 @@ class AppConfig {
 
   /// Active API URL
   static String get apiBaseUrl {
-    final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:8080';
+    final raw = dotenv.env['API_BASE_URL']?.trim();
+    final baseUrl = (raw != null && raw.isNotEmpty)
+        ? raw
+        : 'https://vintagevibe-backend.onrender.com';
     return '$baseUrl/api/v1';
   }
 

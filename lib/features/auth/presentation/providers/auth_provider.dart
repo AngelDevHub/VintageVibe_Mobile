@@ -121,6 +121,9 @@ class AuthNotifier extends Notifier<AuthState> {
         case 500:
           return 'Error del servidor. Intenta más tarde';
         default:
+          if (error.message != null && error.message!.isNotEmpty) {
+            return error.message!;
+          }
           return 'Error de conexión';
       }
     }
