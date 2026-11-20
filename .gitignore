@@ -61,3 +61,5 @@ app.*.map.json
 *.sqlite
 *.sqlite3
 .vscode/
+
+img-catalog/
