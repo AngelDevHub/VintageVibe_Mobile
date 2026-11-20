@@ -32,14 +32,23 @@ class AuthRepository {
     return authResponse;
   }
 
-  /// Logout → clears local session and calls backend
+  /// Logout → clears local session immediately and optionally notifies backend
   Future<void> logout() async {
-    try {
-      await _dio.post(ApiEndpoints.logout);
-    } catch (_) {
-      // Even if backend call fails, clear local session
-    }
+    // 1. Limpiar sesión local INMEDIATAMENTE para que la app no quede bloqueada
     await SecureStorage.clearSession();
+
+    // 2. Notificar al backend de forma asíncrona con timeout corto (3s)
+    try {
+      await _dio.post(
+        ApiEndpoints.logout,
+        options: Options(
+          sendTimeout: const Duration(seconds: 3),
+          receiveTimeout: const Duration(seconds: 3),
+        ),
+      );
+    } catch (_) {
+      // Si el servidor está dormido o no hay red, la sesión local ya fue eliminada con éxito
+    }
   }
 
   /// Check if user has a valid session

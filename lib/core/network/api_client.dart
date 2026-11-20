@@ -11,6 +11,8 @@ final dioProvider = Provider<Dio>((ref) {
 });
 
 class ApiClient {
+  static VoidCallback? onUnauthorized;
+
   static Dio createDio() {
     final dio = Dio(
       BaseOptions(
@@ -39,8 +41,9 @@ class ApiClient {
         },
         onError: (error, handler) async {
           if (error.response?.statusCode == 401) {
-            // Token expired — clear session
+            // Token expired — clear session and notify auth listener
             await SecureStorage.clearSession();
+            onUnauthorized?.call();
           }
 
           // Transform technical network errors into readable user messages

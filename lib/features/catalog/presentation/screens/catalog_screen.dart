@@ -271,15 +271,19 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Verifica tu conexión a internet o el estado del servidor e inténtalo de nuevo.',
+                              'El servidor en la nube puede estar despertando de su modo reposo (tarda ~40-60s tras inactividad). Presiona Reintentar para conectar.',
                               style: AppTypography.bodySmall,
                               textAlign: TextAlign.center,
                             ),
                             const SizedBox(height: 24),
                             ElevatedButton.icon(
-                              onPressed: () => ref.invalidate(productsProvider),
+                              onPressed: () {
+                                ref.invalidate(productsProvider);
+                                ref.invalidate(categoriesProvider);
+                                ref.invalidate(brandsProvider);
+                              },
                               icon: const Icon(CupertinoIcons.refresh, size: 16),
-                              label: const Text('Reintentar'),
+                              label: const Text('Reintentar conexión'),
                             ),
                           ],
                         ),

@@ -48,6 +48,9 @@ class AuthNotifier extends Notifier<AuthState> {
   @override
   AuthState build() {
     _repository = ref.watch(authRepositoryProvider);
+    ApiClient.onUnauthorized = () {
+      state = const AuthState(status: AuthStatus.unauthenticated);
+    };
     _checkSession();
     return const AuthState(status: AuthStatus.initial);
   }
