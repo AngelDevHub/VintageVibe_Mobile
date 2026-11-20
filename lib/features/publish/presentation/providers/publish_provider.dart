@@ -53,6 +53,7 @@ class PublishNotifier extends Notifier<PublishState> {
     String? customCategory,
     required String condition,
     required String description,
+    String size = 'M',
   }) async {
     state = PublishState(isLoading: true);
     try {
@@ -88,7 +89,7 @@ class PublishNotifier extends Notifier<PublishState> {
         'variants': [
           {
             'sku': 'C2C-${DateTime.now().millisecondsSinceEpoch}',
-            'size': 'U',
+            'size': size.trim().isNotEmpty ? size.trim() : 'M',
             'color': 'N/A',
             'stock': stock > 0 ? stock : 1,
             'price': price,

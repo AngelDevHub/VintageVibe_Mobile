@@ -52,6 +52,8 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
   int _selectedCategoryId = 1;
   String _selectedCondition = 'Excelente';
   final List<String> _conditions = ['Nuevo con etiqueta', 'Excelente', 'Buen estado', 'Usado'];
+  String _selectedSize = 'M';
+  final List<String> _sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '28', '30', '32', '34', '36', 'Única'];
 
   @override
   void initState() {
@@ -138,6 +140,7 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
         customCategory:
             _selectedCategoryId == _otherOptionId ? _customCategoryController.text.trim() : null,
         condition: _selectedCondition,
+        size: _selectedSize,
         description: _descriptionController.text.trim(),
       );
     }
@@ -489,6 +492,37 @@ class _PublishScreenState extends ConsumerState<PublishScreen> {
                       if (newValue != null) {
                         setState(() {
                           _selectedCondition = newValue;
+                        });
+                      }
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              Text('Talla de la prenda', style: AppTypography.bodySmall.copyWith(color: AppColors.gray)),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.grayLight),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _selectedSize,
+                    isExpanded: true,
+                    items: _sizes.map((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text('Talla: $value', style: AppTypography.bodyMedium),
+                      );
+                    }).toList(),
+                    onChanged: (newValue) {
+                      if (newValue != null) {
+                        setState(() {
+                          _selectedSize = newValue;
                         });
                       }
                     },

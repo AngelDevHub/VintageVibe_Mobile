@@ -52,15 +52,32 @@ class CartScreen extends ConsumerWidget {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Product Image Placeholder
-                          Container(
-                            width: 80,
-                            height: 100,
-                            decoration: BoxDecoration(
+                          // Product Image
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              width: 80,
+                              height: 100,
                               color: AppColors.light,
-                              borderRadius: BorderRadius.circular(12),
+                              child: (item.imageUrl != null && item.imageUrl!.isNotEmpty)
+                                  ? Image.network(
+                                      item.imageUrl!,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) =>
+                                          const Center(child: Icon(Icons.broken_image, color: AppColors.grayLight, size: 28)),
+                                      loadingBuilder: (context, child, loadingProgress) {
+                                        if (loadingProgress == null) return child;
+                                        return const Center(
+                                          child: SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.dark),
+                                          ),
+                                        );
+                                      },
+                                    )
+                                  : const Center(child: Icon(Icons.image, color: AppColors.grayLight, size: 30)),
                             ),
-                            child: const Center(child: Icon(Icons.image, color: AppColors.grayLight)),
                           ),
                           const SizedBox(width: 12),
                           

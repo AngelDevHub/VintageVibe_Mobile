@@ -34,6 +34,7 @@ class CartItemModel {
   final double price;
   final int quantity;
   final int stock;
+  final String? imageUrl;
 
   CartItemModel({
     required this.id,
@@ -45,6 +46,7 @@ class CartItemModel {
     required this.price,
     required this.quantity,
     required this.stock,
+    this.imageUrl,
   });
 
   factory CartItemModel.fromJson(Map<String, dynamic> json) {
@@ -58,8 +60,22 @@ class CartItemModel {
       price: (json['price'] as num?)?.toDouble() ?? 0.0,
       quantity: json['quantity'] as int? ?? 1,
       stock: json['stock'] as int? ?? 0,
+      imageUrl: json['imageUrl'] as String?,
     );
   }
 
-  double get subtotal => price * quantity;
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'variantId': variantId,
+      'productName': productName,
+      'variantSku': variantSku,
+      'size': size,
+      'color': color,
+      'price': price,
+      'quantity': quantity,
+      'stock': stock,
+      if (imageUrl != null) 'imageUrl': imageUrl,
+    };
+  }
 }

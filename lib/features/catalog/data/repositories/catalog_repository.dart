@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/storage/local_catalog_database.dart';
 import '../models/product.dart';
+import '../models/review_model.dart';
 
 class CatalogRepository {
   final Dio _dio;
@@ -49,5 +50,34 @@ class CatalogRepository {
       }
       rethrow;
     }
+  }
+
+  Future<List<ReviewModel>> getProductReviews(int productId) async {
+    try {
+      final response = await _dio.get(ApiEndpoints.reviewsByProduct(productId));
+      final dynamic raw = response.data;
+      final List<dynamic> content = (raw is Map && raw['content'] is List)
+          ? raw['content'] as List<dynamic>
+          : (raw is List ? raw : []);
+      return content.map((json) => ReviewModel.fromJson(json as Map<String, dynamic>)).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<ReviewModel> createReview({
+    required int productId,
+    required int rating,
+    required String comment,
+  }) async {
+    final response = await _dio.post(
+      ApiEndpoints.reviews,
+      data: {
+        'productId': productId,
+        'rating': rating,
+        'comment': comment,
+      },
+    );
+    return ReviewModel.fromJson(response.data as Map<String, dynamic>);
   }
 }
