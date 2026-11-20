@@ -22,33 +22,29 @@ class VVShell extends StatelessWidget {
     if (location.startsWith('/cart')) currentIndex = 2;
     if (location.startsWith('/profile')) currentIndex = 3;
 
-    return Scaffold(
-      backgroundColor: AppColors.light,
-      resizeToAvoidBottomInset: false,
-      body: MediaQuery.removePadding(
-        context: context,
-        removeBottom: true,
-        child: Stack(
+    return Material(
+      color: AppColors.light,
+      child: Stack(
         fit: StackFit.expand,
         children: [
-          // Contenido a pantalla completa para que pase detrás del cristal translúcido
+          // Contenido a pantalla completa real
           child,
 
-          // Barra de navegación flotante estilo iOS Liquid Glass pegada al borde inferior
+          // Barra de navegación flotante estilo Facebook / iOS pegada casi al borde inferior real
           Positioned(
             left: 12,
             right: 12,
-            bottom: 0,
+            bottom: 6,
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(28),
+              borderRadius: BorderRadius.circular(30),
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
                 child: Container(
                   height: 56,
                   padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                   decoration: BoxDecoration(
-                    color: const Color(0xE8161618),
-                    borderRadius: BorderRadius.circular(28),
+                    color: const Color(0xF2161618),
+                    borderRadius: BorderRadius.circular(30),
                     border: Border.all(
                       color: Colors.white.withValues(alpha: 0.16),
                       width: 0.8,
@@ -92,8 +88,7 @@ class VVShell extends StatelessWidget {
           ),
         ],
       ),
-    ),
-  );
+    );
   }
 }
 
