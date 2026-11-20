@@ -38,7 +38,7 @@ class VVShell extends StatelessWidget {
           Positioned(
             left: 12,
             right: 12,
-            bottom: 4,
+            bottom: 0,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(28),
               child: BackdropFilter(

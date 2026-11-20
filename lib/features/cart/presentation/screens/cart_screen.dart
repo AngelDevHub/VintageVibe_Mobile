@@ -254,7 +254,8 @@ class CartScreen extends ConsumerWidget {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
+                      // Espacio de separación para no ser cubierto por la barra de navegación flotante
+                      const SizedBox(height: 76),
                     ],
                   ),
                 ),
