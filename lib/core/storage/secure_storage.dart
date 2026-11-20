@@ -1,8 +1,9 @@
 /// VintageVibe Mobile — Secure Storage Service
 /// Manages JWT token and user session data using flutter_secure_storage
-/// with a safe in-memory fallback for Web/Safari contexts where WebCrypto may be unavailable.
+/// with persistent SharedPreferences / LocalStorage fallback for iOS Safari and PWA environments.
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_config.dart';
 
 class SecureStorage {
@@ -10,30 +11,65 @@ class SecureStorage {
     aOptions: AndroidOptions(),
   );
 
-  // Fallback seguro en memoria si Safari/Web bloquea WebCrypto o almacenamiento
   static final Map<String, String> _memoryFallback = {};
+  static SharedPreferences? _prefsInstance;
+
+  static Future<SharedPreferences> _getPrefs() async {
+    _prefsInstance ??= await SharedPreferences.getInstance();
+    return _prefsInstance!;
+  }
 
   static Future<void> _write(String key, String value) async {
     _memoryFallback[key] = value;
+
+    // 1. Persistir permanentemente en SharedPreferences (funciona en Safari PWA y no se borra al cerrar)
+    try {
+      final prefs = await _getPrefs();
+      await prefs.setString(key, value);
+    } catch (_) {}
+
+    // 2. Persistir en SecureStorage nativo
     try {
       await _storage.write(key: key, value: value);
     } catch (_) {
-      // Mantiene sesión activa en memoria si la plataforma restringe WebCrypto
+      // Si Safari restringe WebCrypto, SharedPreferences ya aseguró la persistencia en disco
     }
   }
 
   static Future<String?> _read(String key) async {
+    // 1. Memoria rápida
+    if (_memoryFallback.containsKey(key)) {
+      return _memoryFallback[key];
+    }
+
+    // 2. SecureStorage nativo
     try {
       final value = await _storage.read(key: key);
-      if (value != null) return value;
-    } catch (_) {
-      // Fallback silencioso a memoria
-    }
-    return _memoryFallback[key];
+      if (value != null && value.isNotEmpty) {
+        _memoryFallback[key] = value;
+        return value;
+      }
+    } catch (_) {}
+
+    // 3. Fallback persistente de SharedPreferences (recupera sesión al reabrir la PWA en iOS)
+    try {
+      final prefs = await _getPrefs();
+      final value = prefs.getString(key);
+      if (value != null && value.isNotEmpty) {
+        _memoryFallback[key] = value;
+        return value;
+      }
+    } catch (_) {}
+
+    return null;
   }
 
   static Future<void> _delete(String key) async {
     _memoryFallback.remove(key);
+    try {
+      final prefs = await _getPrefs();
+      await prefs.remove(key);
+    } catch (_) {}
     try {
       await _storage.delete(key: key);
     } catch (_) {}
