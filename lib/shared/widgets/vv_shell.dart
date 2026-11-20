@@ -24,8 +24,11 @@ class VVShell extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.light,
-      extendBody: true,
-      body: Stack(
+      resizeToAvoidBottomInset: false,
+      body: MediaQuery.removePadding(
+        context: context,
+        removeBottom: true,
+        child: Stack(
         fit: StackFit.expand,
         children: [
           // Contenido a pantalla completa para que pase detrás del cristal translúcido
@@ -35,17 +38,17 @@ class VVShell extends StatelessWidget {
           Positioned(
             left: 12,
             right: 12,
-            bottom: 0,
+            bottom: 4,
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(32),
+              borderRadius: BorderRadius.circular(28),
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
                 child: Container(
-                  height: 60,
-                  padding: const EdgeInsets.all(4),
+                  height: 56,
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                   decoration: BoxDecoration(
-                    color: const Color(0xE0161618),
-                    borderRadius: BorderRadius.circular(32),
+                    color: const Color(0xE8161618),
+                    borderRadius: BorderRadius.circular(28),
                     border: Border.all(
                       color: Colors.white.withValues(alpha: 0.16),
                       width: 0.8,
@@ -89,7 +92,8 @@ class VVShell extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ),
+  );
   }
 }
 
