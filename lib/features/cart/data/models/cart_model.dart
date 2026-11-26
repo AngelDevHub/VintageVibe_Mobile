@@ -49,6 +49,8 @@ class CartItemModel {
     this.imageUrl,
   });
 
+  double get subtotal => price * quantity;
+
   factory CartItemModel.fromJson(Map<String, dynamic> json) {
     return CartItemModel(
       id: json['id'] as int,
