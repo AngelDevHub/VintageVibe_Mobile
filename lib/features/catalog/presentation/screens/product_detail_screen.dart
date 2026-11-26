@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -148,10 +149,22 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                 }
                               } catch (e) {
                                 setModalState(() => isSubmitting = false);
+                                String msg = 'No se pudo publicar tu reseña. Intenta de nuevo.';
+                                if (e is DioException) {
+                                  final code = e.response?.statusCode;
+                                  final serverMsg = e.response?.data is Map
+                                      ? e.response?.data['message']?.toString()
+                                      : null;
+                                  if (code == 401 || code == 403) {
+                                    msg = 'Inicia sesión para poder publicar tu reseña.';
+                                  } else if (serverMsg != null && serverMsg.isNotEmpty) {
+                                    msg = serverMsg;
+                                  }
+                                }
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Inicia sesión para poder publicar tu reseña'),
+                                    SnackBar(
+                                      content: Text(msg),
                                       backgroundColor: AppColors.error,
                                       behavior: SnackBarBehavior.floating,
                                     ),
