@@ -37,7 +37,9 @@ class PublishNotifier extends Notifier<PublishState> {
       prefixes.add('Categoría: ${customCategory.trim()}');
     }
     final cleanDesc = description.trim();
-    if (prefixes.isEmpty) return cleanDesc;
+    if (prefixes.isEmpty) {
+      return cleanDesc.isNotEmpty ? cleanDesc : 'Prenda vintage disponible en VintageVibe';
+    }
     if (cleanDesc.isEmpty) return prefixes.join(' · ');
     return '${prefixes.join(' · ')} · $cleanDesc';
   }
